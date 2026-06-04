@@ -13,7 +13,7 @@ if not Success or not Rayfield then
 end
 
 local Window = Rayfield:CreateWindow({
-    Name = "Jerry v1 | Ultimate God Mode Edition",
+    Name = "Jerry v1 Beta",
     LoadingTitle = "Jerry v1 beta",
     LoadingSubtitle = "By Jerry ",
     ConfigurationSaving = { Enabled = false },
