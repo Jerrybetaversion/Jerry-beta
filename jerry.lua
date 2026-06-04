@@ -640,4 +640,4 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-print("Jerry v1: Das ultimative und fehlerfreie Meisterwerk wurde geladen!")
+print("Jerry v1: wurde geladen!")
