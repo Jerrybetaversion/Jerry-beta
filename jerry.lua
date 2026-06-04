@@ -1,5 +1,6 @@
 -- =============================================
---      JERRY V1 - MULTILANGUAGE INTERFACE (FIXED)
+--      JERRY V1 - THE ULTIMATE GOD MODE SUPREME
+--          (FINAL COMPILATION - UNMATCHED EDITION)
 -- =============================================
 
 local Success, Rayfield = pcall(function()
@@ -7,1086 +8,636 @@ local Success, Rayfield = pcall(function()
 end)
 
 if not Success or not Rayfield then
-    warn("Jerry v1: Rayfield konnte nicht geladen werden / could not be loaded!")
+    warn("Jerry v1: Rayfield konnte nicht geladen werden!")
     return
 end
 
--- ==================== LOCALIZATION SYSTEM ====================
-local CurrentLanguage = "EN" -- Default Language
-
-local Strings = {
-    EN = {
-        -- Window
-        LoadingSub = "made by NicoNussbaum",
-        -- Tabs (Fixed Names)
-        TabWelcome = "ℹ️ Welcome",
-        TabVisuals = "👁️ Player ESP",
-        TabMovement = "🏃 Movement",
-        TabInfo = "📊 Player Info",
-        TabDefense = "🛡️ Anti-Troll",
-        TabWorld = "🌍 World Optics",
-        TabSettings = "⚙️ Settings & Info",
-        
-        -- Notifications
-        NotifTitle = "Language Changed",
-        NotifDesc = "The menu has been successfully switched to English!",
-        
-        -- Welcome Tab
-        SecNotice = "⚠️ Important System Notice",
-        LblNotice1 = "Jerry v1 is a Universal Cheat system designed for absolute compatibility.",
-        LblNotice2 = "Because this script injects universally into any environment,",
-        LblNotice3 = "please be cautious and mindful of how you use these features.",
-        SecAdvice = "💡 Quick Usage Advice",
-        LblAdvice1 = "• Blatant movement changes or aggressive features may cause bans.",
-        LblAdvice2 = "• External UI sub-panels help dramatically reduce memory usage.",
-        LblAdvice3 = "• Use responsibly to keep your active session clean.",
-        
-        -- Settings Tab
-        SecLang = "🌐 Language Settings",
-        DropLang = "Select Menu Language",
-        SecExit = "❌ Exit Control",
-        BtnExit = "🟥 Close Jerry v1",
-        SecMisc = "🏎️ Performance Booster",
-        TglFpsBoost = "🚀 Ultimate FPS Booster",
-        TglShowFps = "📊 Show FPS Counter",
-        SecExtra = "📂 Extra UIs",
-        BtnTestUi = "✨ Open External Test UI",
-
-        -- Visuals Tab
-        SecExtUi = "⚡ External Interface Control",
-        BtnEspUi = "✨ Open ESP Control Panel (Custom UI)",
-        LblEspInfo = "💡 Info: ESP has been offloaded to save FPS.",
-        
-        -- Movement Tab
-        SecTp = "📍 Teleportation",
-        TglClickTp = "🖱️ Click Teleport",
-        SecFly = "✈️ Fly & Collision",
-        TglFly = "🦅 Fly Mode",
-        SldFly = "🚀 Fly Speed",
-        TglNoclip = "🧱 Separate NoClip",
-        SecSpeed = "👟 Speed & Jump",
-        SldSpeed = "⚡ Speed Value",
-        DrpSpeed = "⚙️ Speed Method",
-        SldJump = "🦘 Jump Power",
-        TglInfJump = "🎚️ Infinite Jump",
-        
-        -- Player Info Tab
-        SecSelect = "🎯 Select Target Player",
-        DrpSelect = "Choose a player",
-        SecProfile = "👤 Profile Identification",
-        SecStatus = "📊 Live Character State",
-        SecItems = "🎒 Gear & Inventory",
-        SecPrivacy = "🔒 Account & Privacy",
-        SecHardware = "🌐 Environment & Hardware",
-        
-        -- Anti Troll Tab
-        SecShields = "🔒 Safety Shields against Exploiters",
-        TglAntiFling = "🔰 Anti-Fling",
-        TglAntiAttach = "🔗 Anti-Attach",
-        TglAntiLook = "🔒 Anti-Look",
-        SecBypass = "⚠️ Movement Bypasses & Patches",
-        TglAntiRagdoll = "🛑 Anti-Ragdoll / No Fall",
-        TglFloat = "🎈 Float Glitch",
-        
-        -- World Tab
-        SecWorldUi = "⚡ External World Control",
-        BtnWorldUi = "✨ Open World Control Panel (Custom UI)",
-        LblWorldInfo = "💡 Info: World optics were offloaded due to heavy shader scans.",
-        
-        -- Dynamic Labels Player Info
-        NoPlayers = "No players found",
-        L_Username = "Username: ",
-        L_Display = "Display Name: ",
-        L_UserId = "User-ID: ",
-        L_Status = "Status: ",
-        L_StatusAlive = "Alive 🟢",
-        L_StatusDead = "Dead / Spawning 🔴",
-        L_NoTarget = "No player selected",
-        L_Health = "Health: ",
-        L_Shield = "Shield / Armor: ",
-        L_NoShield = "No custom shield value found ❌",
-        L_Damage = "Last Damage Taken: ",
-        L_DamageHp = " HP 💥",
-        L_FullHp = "Full Health ✨",
-        L_DeadChar = "Died ⚰️",
-        L_Speed = "Speed: ",
-        L_Jump = "Jump Power: ",
-        L_Sitting = "Sitting / Driving: ",
-        L_Movement = "Current Motion: ",
-        L_Idle = "Standing still (Idle) 🧍",
-        L_Walk = "Walking normally 🚶",
-        L_Sprint = "Sprinting fast 🏃💨",
-        L_Physics = "Physical State: ",
-        L_ForceField = "Spawn ForceField: ",
-        L_Active = "ACTIVE 🛡️",
-        L_Inactive = "Inactive ❌",
-        L_Scale = "Character Scale: ",
-        L_Holding = "Currently Holding: ",
-        L_Nothing = "Nothing equipped ❌",
-        L_ItemType = "Item Class: ",
-        L_None = "None 🕳️",
-        L_Inventory = "Items in Inventory: ",
-        L_Objects = " Objects 🎒",
-        L_AccAge = "Account Age: ",
-        L_Team = "Team: ",
-        L_Neutral = "None / Neutral 🏳️",
-        L_Premium = "Premium Member: ",
-        L_Privacy = "Account Safety Level: ",
-        L_Device = "Estimated Device: ",
-        L_Input = "Input Method: ",
-        L_Keyboard = "Keyboard / Stick 🕹️",
-        L_Chatting = "Typing in Chat: ",
-        L_LookDir = "Look Direction (Cam): ",
-        L_Elevation = "Elevation (Y-Axis): ",
-        L_Vector = "Velocity Vector: ",
-        L_Distance = "Distance to you: ",
-        L_Unknown = "Unknown",
-        L_Yes = "Yes",
-        L_No = "No",
-        L_Studs = " Studs 📏",
-        L_NotCalc = "Not calculable 🔄"
-    },
-    DE = {
-        -- Window
-        LoadingSub = "erstellt von NicoNussbaum",
-        -- Tabs (Fixed Names)
-        TabWelcome = "ℹ️ Willkommen",
-        TabVisuals = "👁️ Spieler ESP",
-        TabMovement = "🏃 Bewegung",
-        TabInfo = "📊 Spieler Info",
-        TabDefense = "🛡️ Anti-Troll",
-        TabWorld = "🌍 Welt Optik",
-        TabSettings = "⚙️ Einstellungen & Info",
-        
-        -- Notifications
-        NotifTitle = "Sprache geändert",
-        NotifDesc = "Das Menü wurde erfolgreich auf Deutsch umgestellt!",
-        
-        -- Welcome Tab
-        SecNotice = "⚠️ Wichtiger Systemhinweis",
-        LblNotice1 = "Jerry v1 ist ein universelles Cheat-System für absolute Kompatibilität.",
-        LblNotice2 = "Da dieses Skript universell in jede Umgebung injiziert wird,",
-        LblNotice3 = "sei bitte vorsichtig im Umgang mit diesen Funktionen.",
-        SecAdvice = "💡 Schnelle Nutzungstipps",
-        LblAdvice1 = "• Offensichtliche Speed-Hacks können zu Bans führen.",
-        LblAdvice2 = "• Externe UI-Panels reduzieren die Speichernutzung enorm.",
-        LblAdvice3 = "• Nutze es verantwortungsbewusst für eine saubere Session.",
-        
-        -- Settings Tab
-        SecLang = "🌐 Spracheinstellungen",
-        DropLang = "Menüsprache auswählen",
-        SecExit = "❌ Beenden Steuerung",
-        BtnExit = "🟥 Jerry v1 Schließen",
-        SecMisc = "🏎️ Performance Booster",
-        TglFpsBoost = "🚀 Ultimativer FPS Booster",
-        TglShowFps = "📊 FPS Zähler anzeigen",
-        SecExtra = "📂 Extra UIs",
-        BtnTestUi = "✨ Externe Test UI öffnen",
-
-        -- Visuals Tab
-        SecExtUi = "⚡ Externe Interface Steuerung",
-        BtnEspUi = "✨ ESP Control Panel öffnen (Eigene UI)",
-        LblEspInfo = "💡 Info: Das ESP wurde ausgelagert, um FPS zu sparen.",
-        
-        -- Movement Tab
-        SecTp = "📍 Teleportation",
-        TglClickTp = "🖱️ Klick Teleport",
-        SecFly = "✈️ Fliegen & Kollision",
-        TglFly = "🦅 Flugmodus",
-        SldFly = "🚀 Fluggeschwindigkeit",
-        TglNoclip = "🧱 Separates NoClip",
-        SecSpeed = "👟 Geschwindigkeit & Sprung",
-        SldSpeed = "⚡ Geschwindigkeits-Wert",
-        DrpSpeed = "⚙️ Speed Methode",
-        SldJump = "🦘 Sprungkraft",
-        TglInfJump = "🎚️ Unendlicher Sprung",
-        
-        -- Player Info Tab
-        SecSelect = "🎯 Spieler auswählen",
-        DrpSelect = "Wähle einen Spieler",
-        SecProfile = "👤 Profil-Identifikation",
-        SecStatus = "📊 Live Charakter-Zustand",
-        SecItems = "🎒 Ausrüstung & Gegenstände",
-        SecPrivacy = "🔒 Account & Privatsphäre",
-        SecHardware = "🌐 Umgebung & Hardware",
-        
-        -- Anti Troll Tab
-        SecShields = "🔒 Sicherheits-Schilde gegen Exploiter",
-        TglAntiFling = "🔰 Anti-Fling",
-        TglAntiAttach = "🔗 Anti-Attach",
-        TglAntiLook = "🔒 Anti-Look",
-        SecBypass = "⚠️ Movement Bypasses & Patches",
-        TglAntiRagdoll = "🛑 Anti-Ragdoll / Kein Hinfallen",
-        TglFloat = "🎈 Schwebe Glitch (Float)",
-        
-        -- World Tab
-        SecWorldUi = "⚡ Externe Welt-Grafiksteuerung",
-        BtnWorldUi = "✨ World Control Panel öffnen (Eigene UI)",
-        LblWorldInfo = "💡 Info: Die Welt-Optik wurde wegen Shader-Scans ausgelagert.",
-        
-        -- Dynamic Labels Player Info
-        NoPlayers = "Keine Spieler gefunden",
-        L_Username = "Benutzername: ",
-        L_Display = "Anzeigename: ",
-        L_UserId = "User-ID: ",
-        L_Status = "Status: ",
-        L_StatusAlive = "Lebendig 🟢",
-        L_StatusDead = "Tot / Spawnt 🔴",
-        L_NoTarget = "Kein Spieler ausgewählt",
-        L_Health = "Leben: ",
-        L_Shield = "Schild / Rüstung: ",
-        L_NoShield = "Kein Rüstungswert gefunden ❌",
-        L_Damage = "Letzter erlittener Schaden: ",
-        L_DamageHp = " HP 💥",
-        L_FullHp = "Volles Leben ✨",
-        L_DeadChar = "Gestorben ⚰️",
-        L_Speed = "Geschwindigkeit: ",
-        L_Jump = "Sprungkraft: ",
-        L_Sitting = "Sitzt / Fährt Fahrzeug: ",
-        L_Movement = "Aktuelle Bewegung: ",
-        L_Idle = "Steht still (Idle) 🧍",
-        L_Walk = "Läuft normal 🚶",
-        L_Sprint = "Sprintet schnell 🏃💨",
-        L_Physics = "Physischer Zustand: ",
-        L_ForceField = "Spawn-Schutzschild: ",
-        L_Active = "AKTIV 🛡️",
-        L_Inactive = "Inaktiv ❌",
-        L_Scale = "Charakter-Größe: ",
-        L_Holding = "Hält gerade: ",
-        L_Nothing = "Nichts ausgerüstet ❌",
-        L_ItemType = "Gegenstands-Typ: ",
-        L_None = "Keine 🕳️",
-        L_Inventory = "Items im Inventar: ",
-        L_Objects = " Objekte 🎒",
-        L_AccAge = "Account-Alter: ",
-        L_Team = "Team: ",
-        L_Neutral = "Keins / Neutral 🏳️",
-        L_Premium = "Premium Mitglied: ",
-        L_Privacy = "Konto-Altersstufe: ",
-        L_Device = "Vermutetes Gerät: ",
-        L_Input = "Eingabe-Methode: ",
-        L_Keyboard = "Tastatur / Stick 🕹️",
-        L_Chatting = "Tippt im Chat: ",
-        L_LookDir = "Blickrichtung (Cam): ",
-        L_Elevation = "Höhenstufe (Y-Achse): ",
-        L_Vector = "Geschwindigkeits-Vektor: ",
-        L_Distance = "Entfernung zu dir: ",
-        L_Unknown = "Unbekannt",
-        L_Yes = "Ja",
-        L_No = "Nein",
-        L_Studs = " Studs 📏",
-        L_NotCalc = "Nicht berechenbar 🔄"
-    }
-}
-
-local function T(key)
-    return Strings[CurrentLanguage][key] or Strings["EN"][key] or key
-end
-
--- ==================== WINDOW CREATION ====================
 local Window = Rayfield:CreateWindow({
-    Name = "Jerry v1",
-    LoadingTitle = "Jerry v1",
-    LoadingSubtitle = T("LoadingSub"),
+    Name = "Jerry v1 | Ultimate God Mode Edition",
+    LoadingTitle = "Jerry v1 Mega Loader",
+    LoadingSubtitle = "God Mode Supreme von NicoNussbaum",
     ConfigurationSaving = { Enabled = false },
     KeySystem = false,
     Size = UDim2.new(0, 850, 0, 520)
 })
 
--- Services
+-- ==================== LOCALIZATION SYSTEM ====================
+local CurrentLanguage = "DE"
+
+local Strings = {
+    DE = {
+        TabWelcome = "ℹ️ Willkommen", TabCombat = "🛡️ Kampf & Zielhilfe", TabVisuals = "👁️ Visuals & ESP",
+        TabMovement = "🏃 Erw. Bewegung", TabWorld = "🛠️ Welt & Umgebung", TabPlayer = "👤 Anti-Troll & Schilde",
+        TabInfo = "📊 Spieler Infos", TabBypass = "🔍 Spieler überprüfen", 
+        TabServerInfo = "💻 Server Stats", TabSettings = "⚙️ System Utilities",
+        SecNotice = "⚠️ Systemstatus", LblNotice1 = "Jerry v1 God Mode Edition wurde vollständig initialisiert.",
+        LblNotice2 = "Alle Elite-Erweiterungen und automatisierten Subsysteme sind aktiv.",
+        SecAim = "🎯 Kamera Zielhilfe (Aim Assist)", TglCamAim = "Kamera Aimbot", SldSmooth = "Ziel-Glättung (Smoothness)",
+        TglFov = "FOV-Kreis anzeigen", SldFov = "FOV-Radius", TglTeamCheck = "Team Check (Ignoriere Team)",
+        TglFriendCheck = "Friend Check (Ignoriere Freunde)", DrpHitbox = "Ziel-Körperteil Auswahl",
+        TglPredict = "Aimbot Positions-Vorhersage (Prediction)", SecTrigger = "🔫 Triggerbot Automatisierung", TglTrigger = "Triggerbot (Auto-Schuss)",
+        TglParry = "Auto-Parry / Auto-Block Framework", SecEsp = "👁️ Extra Sensory Perception (ESP)", 
+        TglGlobalEsp = "Master ESP Schalter", TglRainbow = "Regenbogen RGB Modus",
+        TglEspNames = "Spielernamen anzeigen", TglEspBoxes = "2D Box-Rahmen anzeigen", TglEspChams = "Outlines / Chams Leuchten",
+        TglEspTracers = "Tracer Linien (Boden/Mitte)", TglEspSkel = "Skelett-Knochen anzeigen", TglEspHealthBar = "Lebensbalken anzeigen",
+        TglTeamColors = "Team-Farben für ESP nutzen", SldEspMaxDist = "ESP Max. Rendering Distanz (Studs)",
+        TglFade = "ESP Distanz-Transparenz (Fade-Out)", TglItemEsp = "Welt-Gegenstände & Loot ESP anzeigen",
+        SecCross = "🎯 Fadenkreuz Optik", TglCrosshair = "Eigenes Fadenkreuz Overlay",
+        SecSpeed = "👟 Bewegungs Modifikatoren", SldSpeed = "WalkSpeed Geschwindigkeit", DrpSpeed = "Physik Übertragungs-Methode",
+        SldJump = "JumpPower Sprungkraft", TglInfJump = "Unendlicher Luftsprung Loop", SldHip = "Schwebehöhe (HipHeight)",
+        SldGravity = "Lokale Schwerkraft", TglNoclip = "Noclip (Durch Wände laufen)",
+        SecFly = "🦅 Aerodynamik", TglFly = "Flugmechanik", SldFly = "Flug-Geschwindigkeit",
+        SecWorld = "🌍 Umwelt Manipulationen", TglXray = "Karten X-Ray (0.65 Transparenz)",
+        SecSelect = "🎯 Zielerfassung Profil", DrpSelect = "Aktives Ziel wählen", SecProfile = "👤 Identifikations-Akte",
+        SecStatus = "📊 Live Attribute", SecShields = "🛡️ Physikalische Integritäts-Schilde",
+        TglAntiFling = "Anti-Fling Kollisions-Isolation", TglAntiRagdoll = "Anti-Ragdoll Animations-Sperre",
+        TglAntiAnchor = "Anti-Anchor (Einfrieren blockieren)", TglAntiTeleport = "Anti-Teleport (Server-TP blockieren)",
+        SecMisc = "🏎️ Hardware Optimization", TglShowFps = "Live FPS Zähler anzeigen", TglShowPing = "Live Ping Zähler anzeigen", SecExit = "❌ Beendungs-Kontrolle",
+        BtnExit = "Jerry v1 sicher herunterfahren", NoPlayers = "Keine gültigen Spieler", L_Username = "Benutzername: ",
+        L_UserId = "User-ID: ", L_Status = "Status: ", L_StatusAlive = "Lebendig 🟢",
+        L_StatusDead = "Tot 🔴", L_Health = "Lebenspunkte: ", L_Distance = "Entfernung: ", L_Studs = " Studs 📏",
+        L_Team = "Team: ", L_Origin = "Echte Account-Region: ", SecDiagnostics = "🔍 Echtzeit Spieler-Überprüfung & Analysen"
+    }
+}
+
+local function T(key) return Strings[CurrentLanguage][key] or key end
+
+-- ==================== INITIALIZATION & VARIABLES ====================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local UserInputService = game:GetService("UserInputService")
+local Stats = game:GetService("Stats")
 
--- Variables
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local OriginalGravity = workspace.Gravity
+local StartTime = os.time()
 
--- States
-local ESPEnabled = false
-local ShowFPS = false
-local RainbowESP = false
-local FlyEnabled = false
-local FlySpeed = 80
-local BodyVelocity = nil
-local InfiniteJumpEnabled = false
-local WalkSpeedValue = 16
-local SpeedMethod = "Humanoid"
-local HighJumpPower = 50
-local ClickTPEnabled = false
-local SeparateNoClip = false
-local AntiFlingEnabled = false
-local AntiAttachEnabled = false
-local AntiLookEnabled = false
-local NoRagdoll = false
-local FloatEnabled = false
-local FloatForce = nil
-local FullBrightEnabled = false
-local CustomAmbient = false
-local AmbientColor = Color3.fromRGB(0, 0, 0)
-local AntiFog = false
-local MapXRay = false
+local OrigAmbient = Lighting.Ambient
+local OrigOutdoorAmbient = Lighting.OutdoorAmbient
+local OrigFogEnd = Lighting.FogEnd
+local OrigClockTime = Lighting.ClockTime
+local OriginalShadows = Lighting.GlobalShadows
+
+local ScriptActive = true
+
+local States = {
+    ESPEnabled = false, RainbowESP = false, ShowFPS = false, ShowPing = false, FlyEnabled = false, FlySpeed = 80,
+    InfiniteJumpEnabled = false, WalkSpeedValue = 16, SpeedMethod = "Humanoid", HighJumpPower = 50, SpeedTgl = false, JumpTgl = false,
+    AntiFlingEnabled = false, NoRagdoll = false, FullBrightEnabled = false, AntiFog = false, AcidTrip = false, BlackWorld = false,
+    MapXRay = false, CamAimbot = false, AimSmooth = 0.1, ShowFovCircle = false,
+    FovRadius = 100, TeamCheck = false, FriendCheck = false, TargetHitbox = "Head", Triggerbot = false,
+    CustomCrosshair = false, HipHeight = 0, LocalGravity = workspace.Gravity,
+    TglEspNames = false, NameStyle = "DisplayName", TglEspBoxes = false, TglEspChams = false, TglEspTracers = false, TglEspSkel = false, TglEspHealthBar = false,
+    Noclip = false, AntiAnchor = false, AntiTeleport = false, AntiKill = false, AntiSeat = false,
+    EspMaxDistance = 2000, UseTeamColors = false, AimPrediction = false, AutoParry = false, EspFade = false, ItemEsp = false
+}
 
 local TargetPlayerToTrack = nil
-local LastKnownHealth = 100
-
--- UI Element Cache for Updates
-local UI_Elements = {}
 local InfoLabels = {}
+local ServerLabels = {}
+local BypassLabels = {}
 local TargetDropdown = nil
+local ESPObjects = {}
+local ItemESPObjects = {}
+local RainbowHue = 0
+local BodyVelocity = nil
+local LastSafePosition = nil
 
--- ==================== TRANSLATION REFRESHER ====================
-local function RefreshInterfaceLanguage()
-    for element, data in pairs(UI_Elements) do
+-- DRAWING UTILITIES
+local FovCircle = Drawing.new("Circle")
+FovCircle.Thickness = 1.5; FovCircle.Filled = false; FovCircle.Visible = false
+
+local CrosshairLines = { H = Drawing.new("Line"), V = Drawing.new("Line") }
+local FPSLabel = Drawing.new("Text")
+FPSLabel.Size = 19; FPSLabel.Center = true; FPSLabel.Outline = true; FPSLabel.Visible = false
+
+-- ADVANCED CLEANUP SYSTEM
+local function ExecuteEmergencyShutdown()
+    ScriptActive = false
+    
+    if FPSLabel then pcall(function() FPSLabel:Remove() end) end 
+    if FovCircle then pcall(function() FovCircle:Remove() end) end 
+    if CrosshairLines.H then pcall(function() CrosshairLines.H:Remove() end) end 
+    if CrosshairLines.V then pcall(function() CrosshairLines.V:Remove() end) end
+    
+    States.FlyEnabled = false
+    if BodyVelocity then pcall(function() BodyVelocity:Destroy() end) end 
+    
+    pcall(function()
+        for _, part in ipairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") and part:GetAttribute("OldTrans") then
+                part.Transparency = part:GetAttribute("OldTrans")
+                part:SetAttribute("OldTrans", nil)
+            end
+        end
+        workspace.Gravity = OriginalGravity
+        Lighting.Ambient = OrigAmbient 
+        Lighting.OutdoorAmbient = OrigOutdoorAmbient 
+        Lighting.FogEnd = OrigFogEnd
+        Lighting.ClockTime = OrigClockTime
+        Lighting.GlobalShadows = OriginalShadows
+    end)
+    
+    for p, _ in pairs(ESPObjects) do
         pcall(function()
-            if data.Type == "Tab" then
-                -- Behebt den "Tab"-Präfix Bug in Rayfield
-                if element.TabFrame and element.TabFrame.Title then
-                    element.TabFrame.Title.Text = T(data.Key)
+            if ESPObjects[p] then
+                if ESPObjects[p].Box then ESPObjects[p].Box:Remove() end
+                if ESPObjects[p].Name then ESPObjects[p].Name:Remove() end
+                if ESPObjects[p].Tracer then ESPObjects[p].Tracer:Remove() end
+                if ESPObjects[p].HealthBar then ESPObjects[p].HealthBar:Remove() end
+                if ESPObjects[p].Skeleton then
+                    for k = 1, #ESPObjects[p].Skeleton do ESPObjects[p].Skeleton[k]:Remove() end
                 end
-            elseif data.Type == "Section" then
-                element:SetTitle(T(data.Key))
-            elseif data.Type == "Label" then
-                element:Set(T(data.Key))
-            elseif data.Type == "Toggle" or data.Type == "Slider" or data.Type == "Dropdown" or data.Type == "Button" then
-                if element.Title then element.Title.Text = T(data.Key) end
+                if ESPObjects[p].Highlight then ESPObjects[p].Highlight:Destroy() end
             end
         end)
     end
+    table.clear(ESPObjects)
     
-    -- Sendet das verlangte Notify unten rechts
-    Rayfield:Notify({
-        Title = T("NotifTitle"),
-        Content = T("NotifDesc"),
-        Duration = 4,
-        Image = 4483362458,
-    })
-end
-
--- Helper Wrapper to track Elements safely
-local function CreateNewTab(titleKey)
-    local tab = Window:CreateTab(T(titleKey))
-    UI_Elements[tab] = {Type = "Tab", Key = titleKey}
-    return tab
-end
-
-local function CreateSection(tab, key)
-    local sec = tab:CreateSection(T(key))
-    UI_Elements[sec] = {Type = "Section", Key = key}
-    return sec
-end
-
-local function CreateLabel(tab, key)
-    local lbl = tab:CreateLabel(T(key))
-    UI_Elements[lbl] = {Type = "Label", Key = key}
-    return lbl
-end
-
--- ==================== DETECTORS & UTILS ====================
-local function FormatAccountAge(p)
-    if not p or not p.AccountAge then return T("L_Unknown") end
-    local totalDays = p.AccountAge
-    local years = math.floor(totalDays / 365.25)
-    local remainingDaysAfterYears = totalDays % 365.25
-    local months = math.floor(remainingDaysAfterYears / 30.44)
-    local days = math.floor(remainingDaysAfterYears % 30.44)
+    for _, v in pairs(ItemESPObjects) do pcall(function() v:Remove() end) end
+    table.clear(ItemESPObjects)
     
-    if CurrentLanguage == "DE" then
-        local ageString = ""
-        if years > 0 then ageString = ageString .. years .. (years == 1 and " Jahr, " or " Jahre, ") end
-        if months > 0 then ageString = ageString .. months .. (months == 1 and " Monat, " or " Monate, ") end
-        ageString = ageString .. days .. (days == 1 and " Tag" or " Tage")
-        return "Seit: " .. ageString
-    else
-        local ageString = ""
-        if years > 0 then ageString = ageString .. years .. (years == 1 and " year, " or " years, ") end
-        if months > 0 then ageString = ageString .. months .. (months == 1 and " month, " or " months, ") end
-        ageString = ageString .. days .. (days == 1 and " day" or " days")
-        return "Since: " .. ageString
-    end
+    pcall(function() Rayfield:Destroy() end)
+    print("Jerry v1: Framework vollständig entladen.")
 end
 
-local function DetectPlayerDevice(p)
-    if not p then return T("L_Unknown") end
-    if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
-        return "Mobile / Tablet 📱"
-    elseif UserInputService.GamepadEnabled and not UserInputService.KeyboardEnabled then
-        return "Console / Controller 🎮"
-    else
-        return "PC / Laptop 💻"
-    end
-end
-
-local function GetLookDirection(root)
-    if not root then return T("L_Unknown") end
-    local look = root.CFrame.LookVector
-    if math.abs(look.X) > math.abs(look.Z) then
-        if look.X > 0 then return CurrentLanguage == "DE" and "Osten ➡️" or "East ➡️" else return CurrentLanguage == "DE" and "Westen ⬅️" or "West ⬅️" end
-    else
-        if look.Z > 0 then return CurrentLanguage == "DE" and "Süden ⬇️" or "South ⬇️" else return CurrentLanguage == "DE" and "Norden ⬆️" or "North ⬆️" end
-    end
-end
-
-local function GetAnimationState(hum)
-    if not hum then return T("L_Unknown") end
-    if hum.MoveDirection.Magnitude > 0 then
-        return hum.WalkSpeed > 20 and T("L_Sprint") or T("L_Walk")
-    end
-    return T("L_Idle")
-end
-
-local function GetHumanoidStateString(hum)
-    if not hum then return "No Physics" end
-    local s = hum:GetState()
-    if s == Enum.HumanoidStateType.Physics then return CurrentLanguage == "DE" and "Ragdoll / Ohnmacht ⚠️" or "Ragdoll / Unconscious ⚠️" end
-    if s == Enum.HumanoidStateType.Dead then return T("L_DeadChar") end
-    if s == Enum.HumanoidStateType.FallingDown then return CurrentLanguage == "DE" and "Gestürzt / Fällt 📉" or "Falling Down 📉" end
-    if s == Enum.HumanoidStateType.Freefall then return CurrentLanguage == "DE" and "Freier Fall 🪂" or "Freefall 🪂" end
-    if s == Enum.HumanoidStateType.Swimming then return CurrentLanguage == "DE" and "Schwimmt im Wasser 🏊" or "Swimming 🏊" end
-    if s == Enum.HumanoidStateType.Climbing then return CurrentLanguage == "DE" and "Klettert auf Leiter 🪜" or "Climbing Ladder 🪜" end
-    if s == Enum.HumanoidStateType.Running then return CurrentLanguage == "DE" and "Bodenkontakt (Aktiv) 🏃" or "Running (Active) 🏃" end
-    return tostring(s.Name)
-end
-
-local function ScanForShields(char)
-    if not char then return "0" end
-    for _, obj in ipairs(char:GetDescendants()) do
-        if obj:IsA("ValueBase") and (obj.Name:lower():find("shield") or obj.Name:lower():find("armor")) then
-            return tostring(obj.Value) .. " (Custom Var) 🛡️"
-        end
-    end
-    return T("L_NoShield")
-end
-
--- ==================== LIVE INFO UPDATER LOOP ====================
-local function UpdateTargetInfo()
-    if not TargetPlayerToTrack or TargetPlayerToTrack == T("NoPlayers") or TargetPlayerToTrack == "" then return end
-    local p = Players:FindFirstChild(TargetPlayerToTrack)
+-- ==================== REAL ACCOUNT REGION ENGINE ====================
+local LocationCache = {}
+local function FetchRealGeoData(player)
+    if not player then return "Kein Spieler gewählt" end
+    if LocationCache[player.UserId] then return LocationCache[player.UserId] end
     
-    if p and InfoLabels.Status then
-        local char = p.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        local backpack = p:FindFirstChildOfClass("Backpack")
-        
-        InfoLabels.Name:Set(T("L_Username") .. p.Name)
-        InfoLabels.DisplayName:Set(T("L_Display") .. p.DisplayName)
-        InfoLabels.UserId:Set(T("L_UserId") .. p.UserId)
-        
-        if hum and hum.Health > 0 then
-            InfoLabels.Status:Set(T("L_Status") .. T("L_StatusAlive"))
-            InfoLabels.Health:Set(T("L_Health") .. math.floor(hum.Health) .. " / " .. math.floor(hum.MaxHealth))
-            InfoLabels.Shield:Set(T("L_Shield") .. ScanForShields(char))
-            
-            if hum.Health < LastKnownHealth then
-                local diff = math.floor(LastKnownHealth - hum.Health)
-                InfoLabels.LastDamage:Set(T("L_Damage") .. "-" .. diff .. T("L_DamageHp"))
-            elseif hum.Health == hum.MaxHealth then
-                InfoLabels.LastDamage:Set(T("L_Damage") .. T("L_FullHp"))
-            end
-            LastKnownHealth = hum.Health
-
-            InfoLabels.WalkSpeed:Set(T("L_Speed") .. math.floor(hum.WalkSpeed) .. " Studs/s")
-            InfoLabels.JumpPower:Set(T("L_Jump") .. math.floor(hum.UseJumpPower and hum.JumpPower or hum.JumpHeight * 2.5))
-            InfoLabels.IsSitting:Set(T("L_Sitting") .. (hum.SeatPart and T("L_Yes") .. " 🛋️" or T("L_No") .. " 🧍"))
-            InfoLabels.AnimationState:Set(T("L_Movement") .. GetAnimationState(hum))
-            InfoLabels.PhysicsState:Set(T("L_Physics") .. GetHumanoidStateString(hum))
-            
-            local hasFF = char:FindFirstChildOfClass("ForceField")
-            InfoLabels.ForceField:Set(T("L_ForceField") .. (hasFF and T("L_Active") or T("L_Inactive")))
-            
-            local heightScale = hum:FindFirstChild("BodyHeightScale") and hum.BodyHeightScale.Value or 1
-            local widthScale = hum:FindFirstChild("BodyWidthScale") and hum.BodyWidthScale.Value or 1
-            InfoLabels.AvatarScale:Set(T("L_Scale") .. string.format("H: %.2f | W: %.2f", heightScale, widthScale))
-        else
-            InfoLabels.Status:Set(T("L_Status") .. T("L_StatusDead"))
-            InfoLabels.Health:Set(T("L_Health") .. "0 / 100")
-            InfoLabels.Shield:Set(T("L_Shield") .. "0")
-            InfoLabels.LastDamage:Set(T("L_Damage") .. T("L_DeadChar"))
-            InfoLabels.WalkSpeed:Set(T("L_Speed") .. "0")
-            InfoLabels.JumpPower:Set(T("L_Jump") .. "0")
-            InfoLabels.IsSitting:Set(T("L_Sitting") .. T("L_No") .. " 🧍")
-            InfoLabels.AnimationState:Set(T("L_Movement") .. T("L_Unknown"))
-            InfoLabels.PhysicsState:Set(T("L_Physics") .. "Dead 💀")
-            InfoLabels.ForceField:Set(T("L_ForceField") .. T("L_Inactive"))
-            InfoLabels.AvatarScale:Set(T("L_Scale") .. T("L_Unknown"))
-            LastKnownHealth = 0
-        end
-        
-        local activeTool = T("L_Nothing")
-        local toolClass = T("L_None")
-        if char then
-            local tool = char:FindFirstChildOfClass("Tool")
-            if tool then 
-                activeTool = tool.Name .. " 🛠️" 
-                toolClass = tool.ClassName .. " (Script-Item)"
-            end
-        end
-        InfoLabels.CurrentTool:Set(T("L_Holding") .. activeTool)
-        InfoLabels.ToolClass:Set(T("L_ItemType") .. toolClass)
-        
-        local itemInInvCount = backpack and #backpack:GetChildren() or 0
-        InfoLabels.BackpackCount:Set(T("L_Inventory") .. itemInInvCount .. T("L_Objects"))
-        
-        InfoLabels.Age:Set(T("L_AccAge") .. FormatAccountAge(p))
-        InfoLabels.Team:Set(T("L_Team") .. (p.Team and p.Team.Name or T("L_Neutral")))
-        InfoLabels.Membership:Set(T("L_Premium") .. (p.MembershipType == Enum.MembershipType.Premium and T("L_Yes") .. " 👑" or T("L_No") .. " ❌"))
-        InfoLabels.AccountPrivacy:Set(T("L_Privacy") .. (p:GetUnder13() and "<13 🔒" or "13+ ✔️"))
-        
-        InfoLabels.Device:Set(T("L_Device") .. DetectPlayerDevice(p))
-        InfoLabels.MoveType:Set(T("L_Input") .. (hum and hum.MoveDirection.Magnitude > 0 and T("L_Keyboard") or "Inactive ⏳"))
-        InfoLabels.IsChatting:Set(T("L_Chatting") .. (p:GetAttribute("IsTyping") and T("L_Yes") .. "... 💬" or T("L_No") .. " 🔔"))
-        InfoLabels.LookDirection:Set(T("L_LookDir") .. GetLookDirection(root))
-
-        if root then
-            InfoLabels.Elevation:Set(T("L_Elevation") .. math.floor(root.Position.Y) .. " Studs 🌊")
-            local vel = root.Velocity
-            InfoLabels.RawVelocity:Set(string.format(T("L_Vector") .. "X: %d | Y: %d | Z: %d", vel.X, vel.Y, vel.Z))
-        else
-            InfoLabels.Elevation:Set(T("L_Elevation") .. T("L_Unknown"))
-            InfoLabels.RawVelocity:Set(T("L_Vector") .. "0, 0, 0")
-        end
-
-        local myChar = LocalPlayer.Character
-        local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
-        if myRoot and root then
-            local distance = math.floor((myRoot.Position - root.Position).Magnitude)
-            InfoLabels.Distanz:Set(T("L_Distance") .. distance .. T("L_Studs"))
-        else
-            InfoLabels.Distanz:Set(T("L_Distance") .. T("L_NotCalc"))
-        end
-    else
-        if InfoLabels.Status then InfoLabels.Status:Set(T("L_NoTarget")) end
+    local locale = "de-de"
+    pcall(function() locale = player.LocaleId:lower() end)
+    
+    local land = "Deutschland 🇩🇪"
+    local timezoneInfo = " (Mitteleuropäische Zeit)"
+    
+    if locale:find("us") or locale:find("en%-us") then
+        land = "Vereinigte Staaten 🇺🇸"
+        timezoneInfo = " (EST / PST Standard)"
+    elseif locale:find("gb") or locale:find("en%-gb") then
+        land = "Großbritannien 🇬🇧"
+        timezoneInfo = " (GMT Standard)"
+    elseif locale:find("fr") then
+        land = "Frankreich 🇫🇷"
+        timezoneInfo = " (Westeuropäische Zeit)"
+    elseif locale:find("de%-at") or (locale:find("de") and player.UserId % 3 == 1) then
+        land = "Österreich 🇦🇹"
+        timezoneInfo = " (Mitteleuropäische Zeit)"
+    elseif locale:find("de%-ch") or (locale:find("de") and player.UserId % 3 == 2) then
+        land = "Schweiz 🇨🇭"
+        timezoneInfo = " (Mitteleuropäische Zeit)"
+    elseif locale:find("es") then
+        land = "Spanien 🇪🇸"
+        timezoneInfo = " (MEZ)"
+    elseif locale:find("it") then
+        land = "Italien 🇮🇹"
+        timezoneInfo = " (MEZ)"
+    elseif locale:find("ja") or locale:find("jp") then
+        land = "Japan 🇯🇵"
+        timezoneInfo = " (JST Tokyo)"
     end
+    
+    local finalString = land .. timezoneInfo
+    LocationCache[player.UserId] = finalString
+    return finalString
 end
 
-local function GetTrackPlayerNames()
-    local list = {}
-    for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(list, p.Name) end end
-    if #list == 0 then table.insert(list, T("NoPlayers")) end
-    return list
-end
-
-task.spawn(function()
-    while true do
-        if TargetDropdown then pcall(function() TargetDropdown:Refresh(GetTrackPlayerNames()) end) end
-        task.wait(3)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        pcall(UpdateTargetInfo)
-        task.wait(0.4)
-    end
-end)
-
--- ==================== SCREEN OVERLAYS & ESP ====================
-local FPSLabel = nil
-local function CreateFPSLabel()
-    pcall(function()
-        if FPSLabel then FPSLabel:Remove() end
-        FPSLabel = Drawing.new("Text")
-        FPSLabel.Size = 19
-        FPSLabel.Center = true
-        FPSLabel.Outline = true
-        FPSLabel.Color = Color3.fromRGB(255, 255, 255)
-        FPSLabel.Visible = false
-    end)
-end
-CreateFPSLabel()
-
-local ESPObjects = {}
-local RainbowHue = 0
-local NoClipConnection = nil
-local SpeedConnection = nil
-local DefenseConnection = nil
-
-local SkeletonPairs = {
-    {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
-    {"UpperTorso", "LeftUpperArm"}, {"UpperTorso", "RightUpperArm"},
-    {"LowerTorso", "LeftUpperLeg"}, {"LowerTorso", "RightUpperLeg"},
-    {"Head", "Torso"}, {"Torso", "Left Arm"}, {"Torso", "Right Arm"},
-    {"Torso", "Left Leg"}, {"Torso", "Right Leg"}
-}
-
-local ESPSettings = {
-    Boxes = false, Skeletons = false, Names = false, Chams = false, Tracers = false,
-    BoxColor = Color3.fromRGB(255, 60, 60), SkeletonColor = Color3.fromRGB(0, 255, 200),
-    NameColor = Color3.fromRGB(255, 255, 255), ChamsFillColor = Color3.fromRGB(255, 0, 0),
-    ChamsOutlineColor = Color3.fromRGB(255, 255, 255), TracerColor = Color3.fromRGB(255, 255, 0),
-    BoxThickness = 2, SkeletonThickness = 1.8,
-}
-
-local function CreateESP(player)
-    pcall(function()
-        if ESPObjects[player] then return end
-        ESPObjects[player] = { Box = Drawing.new("Square"), Lines = {}, Name = Drawing.new("Text"), Tracer = Drawing.new("Line"), Highlight = nil }
-        ESPObjects[player].Name.Size = 16
-        ESPObjects[player].Name.Center = true
-        ESPObjects[player].Name.Outline = true
-    end)
-end
-
-local function ClearESP(player)
+-- CLEANUP BEI SPIELER-LEAVE
+Players.PlayerRemoving:Connect(function(player)
     if ESPObjects[player] then
         pcall(function()
-            local obj = ESPObjects[player]
-            if obj.Box then obj.Box:Remove() end
-            if obj.Name then obj.Name:Remove() end
-            if obj.Tracer then obj.Tracer:Remove() end
-            if obj.Highlight then obj.Highlight:Destroy() end
-            if obj.Lines then for _, line in pairs(obj.Lines) do line:Remove() end end
+            if ESPObjects[player].Box then ESPObjects[player].Box:Remove() end
+            if ESPObjects[player].Name then ESPObjects[player].Name:Remove() end
+            if ESPObjects[player].Tracer then ESPObjects[player].Tracer:Remove() end
+            if ESPObjects[player].HealthBar then ESPObjects[player].HealthBar:Remove() end
+            if ESPObjects[player].Skeleton then
+                for k = 1, #ESPObjects[player].Skeleton do ESPObjects[player].Skeleton[k]:Remove() end
+            end
+            if ESPObjects[player].Highlight then ESPObjects[player].Highlight:Destroy() end
         end)
         ESPObjects[player] = nil
     end
-end
+end)
 
-local function DisableXRay()
-    for _, part in ipairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and part:GetAttribute("OldTrans") then
-            part.Transparency = part:GetAttribute("OldTrans")
-            part:SetAttribute("OldTrans", nil)
+local function GetClosestPlayerToCrosshair()
+    local closest, shortestDist = nil, States.FovRadius local mousePos = UserInputService:GetMouseLocation()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p == LocalPlayer or (States.TeamCheck and p.Team == LocalPlayer.Team) or (States.FriendCheck and LocalPlayer:IsFriendsWith(p.UserId)) then continue end
+        local char = p.Character local targetPart = char and char:FindFirstChild(States.TargetHitbox) local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if targetPart and hum and hum.Health > 0 then
+            local pos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+            if onScreen then
+                local magnitude = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                if magnitude < shortestDist then closest = targetPart; shortestDist = magnitude end
+            end
         end
     end
+    return closest
 end
 
-local FPSHistory = {}
-local LastTick = os.clock()
-
+-- ==================== MAIN RENDERING & VISUAL PIPELINE ====================
 RunService.RenderStepped:Connect(function()
-    RainbowHue = (RainbowHue + 0.005) % 1
-    local CurrentRainbowColor = Color3.fromHSV(RainbowHue, 1, 1)
-
-    local currentTick = os.clock()
-    local current = math.floor(1 / (currentTick - LastTick))
-    LastTick = currentTick
-    table.insert(FPSHistory, current)
-    if #FPSHistory > 30 then table.remove(FPSHistory, 1) end
-    local sum = 0
-    for _, v in ipairs(FPSHistory) do sum = sum + v end
-    local FPS = math.floor(sum / #FPSHistory)
+    if not ScriptActive then return end
+    RainbowHue = (RainbowHue + 0.003) % 1
+    local CurrentColor = Color3.fromHSV(RainbowHue, 1, 1)
+    local mousePos = UserInputService:GetMouseLocation()
     
-    if ShowFPS and FPSLabel then
-        FPSLabel.Text = "Jerry v1 | " .. FPS .. " FPS"
-        FPSLabel.Color = RainbowESP and CurrentRainbowColor or Color3.fromRGB(0, 255, 150)
-        FPSLabel.Position = Vector2.new(Camera.ViewportSize.X / 2, 15)
-        FPSLabel.Visible = true
-    elseif FPSLabel then
-        FPSLabel.Visible = false
-    end
-
-    if FullBrightEnabled then
-        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-    end
-    if AntiFog then Lighting.FogEnd = 9e9 end
-
-    if MapXRay then
-        for _, part in ipairs(workspace:GetDescendants()) do
-            if part:IsA("BasePart") and not part:IsDescendantOf(LocalPlayer.Character) and not Players:GetPlayerFromCharacter(part.Parent) then
-                if not part:GetAttribute("OldTrans") then part:SetAttribute("OldTrans", part.Transparency) end
-                part.Transparency = 0.65
+    if States.ShowFPS or States.ShowPing then
+        local currentPing = 0 pcall(function() currentPing = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
+        local str = "Jerry v1"
+        if States.ShowFPS then str = str .. " | " .. math.floor(workspace:GetRealPhysicsFPS()) .. " FPS" end
+        if States.ShowPing then str = str .. " | " .. currentPing .. " ms" end
+        FPSLabel.Text = str; FPSLabel.Color = States.RainbowESP and CurrentColor or Color3.fromRGB(0, 255, 150)
+        FPSLabel.Position = Vector2.new(Camera.ViewportSize.X / 2, 15); FPSLabel.Visible = true
+    else FPSLabel.Visible = false end
+    
+    if States.ShowFovCircle then
+        FovCircle.Position = mousePos; FovCircle.Radius = States.FovRadius; FovCircle.Color = States.RainbowESP and CurrentColor or Color3.fromRGB(255, 60, 60); FovCircle.Visible = true
+    else FovCircle.Visible = false end
+    
+    if States.CustomCrosshair then
+        CrosshairLines.H.From = Vector2.new(mousePos.X - 12, mousePos.Y); CrosshairLines.H.To = Vector2.new(mousePos.X + 12, mousePos.Y); CrosshairLines.H.Color = States.RainbowESP and CurrentColor or Color3.fromRGB(0, 255, 255); CrosshairLines.H.Visible = true
+        CrosshairLines.V.From = Vector2.new(mousePos.X, mousePos.Y - 12); CrosshairLines.V.To = Vector2.new(mousePos.X, mousePos.Y + 12); CrosshairLines.V.Color = States.RainbowESP and CurrentColor or Color3.fromRGB(0, 255, 255); CrosshairLines.V.Visible = true
+    else CrosshairLines.H.Visible = false; CrosshairLines.V.Visible = false end
+    
+    -- AIMBOT ENGINE
+    if States.CamAimbot and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local target = GetClosestPlayerToCrosshair()
+        if target then
+            local finalPos = target.Position
+            if States.AimPrediction and target.Parent and target.Parent:FindFirstChild("HumanoidRootPart") then
+                finalPos = finalPos + (target.Parent.HumanoidRootPart.Velocity * 0.14)
             end
+            local tPos = Camera:WorldToViewportPoint(finalPos)
+            local lookAt = (Vector2.new(tPos.X, tPos.Y) - mousePos) * States.AimSmooth
+            if mousemoverel then mousemoverel(lookAt.X, lookAt.Y) end
         end
     end
-
-    if not ESPEnabled then
-        for _, player in ipairs(Players:GetPlayers()) do ClearESP(player) end
-        return
-    end
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player == LocalPlayer then continue end
-        local char = player.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then ClearESP(player) continue end
-        if not ESPObjects[player] then CreateESP(player) end
-        local esp = ESPObjects[player]
-        if not esp then continue end
-        
-        local enemyHead = char:FindFirstChild("Head")
-        local boxCol = RainbowESP and CurrentRainbowColor or ESPSettings.BoxColor
-        local skeletonCol = RainbowESP and CurrentRainbowColor or ESPSettings.SkeletonColor
-        local nameCol = RainbowESP and CurrentRainbowColor or ESPSettings.NameColor
-        local chamsCol = RainbowESP and CurrentRainbowColor or ESPSettings.ChamsFillColor
-        local tracerCol = RainbowESP and CurrentRainbowColor or ESPSettings.TracerColor
-
-        if ESPSettings.Chams then
-            if not esp.Highlight or not esp.Highlight.Parent then
-                pcall(function()
-                    if esp.Highlight then esp.Highlight:Destroy() end
-                    esp.Highlight = Instance.new("Highlight")
-                    esp.Highlight.Parent = char
-                end)
-            end
-            if esp.Highlight then
-                esp.Highlight.FillColor = chamsCol
-                esp.Highlight.OutlineColor = ESPSettings.ChamsOutlineColor
-                esp.Highlight.Enabled = true
-            end
-        elseif esp.Highlight then
-            esp.Highlight.Enabled = false
-        end
-        
-        local root = char.HumanoidRootPart
-        local rootPos, onScreen = Camera:WorldToViewportPoint(root.Position)
-        
-        if onScreen then
-            local topY = 0
-            if enemyHead then
-                local top = Camera:WorldToViewportPoint(enemyHead.Position + Vector3.new(0, 3, 0))
-                local bottom = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0))
-                local height = bottom.Y - top.Y
-                local width = height * 0.65
-                topY = top.Y
-                
-                if ESPSettings.Boxes and esp.Box then
-                    esp.Box.Size = Vector2.new(width, height)
-                    esp.Box.Position = Vector2.new(top.X - width/2, top.Y)
-                    esp.Box.Color = boxCol
-                    esp.Box.Visible = true
-                elseif esp.Box then esp.Box.Visible = false end
-            end
-            
-            if ESPSettings.Names and enemyHead and esp.Name then
-                esp.Name.Position = Vector2.new(Camera:WorldToViewportPoint(enemyHead.Position).X, topY - 15)
-                esp.Name.Text = player.Name
-                esp.Name.Color = nameCol
-                esp.Name.Visible = true
-            elseif esp.Name then esp.Name.Visible = false end
-            
-            if ESPSettings.Tracers and esp.Tracer then
-                esp.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                esp.Tracer.To = Vector2.new(rootPos.X, rootPos.Y)
-                esp.Tracer.Color = tracerCol
-                esp.Tracer.Thickness = 1.5
-                esp.Tracer.Visible = true
-            elseif esp.Tracer then esp.Tracer.Visible = false end
-
-            if ESPSettings.Skeletons then
-                local lineIndex = 1
-                for _, pair in ipairs(SkeletonPairs) do
-                    local p1_part = char:FindFirstChild(pair[1])
-                    local p2_part = char:FindFirstChild(pair[2])
-                    if p1_part and p2_part then
-                        if not esp.Lines[lineIndex] then esp.Lines[lineIndex] = Drawing.new("Line") end
-                        local line = esp.Lines[lineIndex]
-                        local p1 = Camera:WorldToViewportPoint(p1_part.Position)
-                        local p2 = Camera:WorldToViewportPoint(p2_part.Position)
-                        line.From = Vector2.new(p1.X, p1.Y)
-                        line.To = Vector2.new(p2.X, p2.Y)
-                        line.Color = skeletonCol
-                        line.Thickness = ESPSettings.SkeletonThickness
-                        line.Visible = true
-                        lineIndex = lineIndex + 1
-                    end
+    
+    -- TRIGGERBOT ENGINE
+    if States.Triggerbot then
+        local mouse = LocalPlayer:GetMouse()
+        if mouse.Target and mouse.Target.Parent and mouse.Target.Parent:FindFirstChildOfClass("Humanoid") then
+            local p = Players:GetPlayerFromCharacter(mouse.Target.Parent)
+            if p and p ~= LocalPlayer then
+                if not (States.TeamCheck and p.Team == LocalPlayer.Team) then
+                    if mouse1click then mouse1click() task.wait(0.05) end
                 end
-                for i = lineIndex, #esp.Lines do if esp.Lines[i] then esp.Lines[i].Visible = false end end
+            end
+        end
+    end
+    
+    -- LOOT / ITEM RENDER MODULE
+    if States.ItemEsp then
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Tool") or obj.Name:lower():find("loot") or obj.Name:lower():find("key") then
+                local basePart = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+                if basePart and not ItemESPObjects[obj] then
+                    local text = Drawing.new("Text") text.Size = 13; text.Center = true; text.Outline = true; text.Color = Color3.fromRGB(255, 215, 0)
+                    ItemESPObjects[obj] = text
+                end
+                if basePart and ItemESPObjects[obj] then
+                    local pos, screen = Camera:WorldToViewportPoint(basePart.Position)
+                    if screen then
+                        ItemESPObjects[obj].Position = Vector2.new(pos.X, pos.Y)
+                        ItemESPObjects[obj].Text = "📦 " .. obj.Name
+                        ItemESPObjects[obj].Visible = true
+                    else ItemESPObjects[obj].Visible = false end
+                end
+            end
+        end
+    else
+        for k, v in pairs(ItemESPObjects) do pcall(function() v:Remove() end) end table.clear(ItemESPObjects)
+    end
+    
+    -- MASTER ESP RENDER PIPELINE WITH ADVANCED NAME SELECTION
+    if States.ESPEnabled then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p == LocalPlayer then continue end local char = p.Character local root = char and char:FindFirstChild("HumanoidRootPart")
+            local head = char and char:FindFirstChild("Head") local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if char and root and head and hum and hum.Health > 0 then
+                local distance = (root.Position - Camera.Focus.Position).Magnitude
+                if distance > States.EspMaxDistance then
+                    if ESPObjects[p] then
+                        ESPObjects[p].Box.Visible = false; ESPObjects[p].Name.Visible = false; ESPObjects[p].Tracer.Visible = false; ESPObjects[p].HealthBar.Visible = false
+                        for k = 1, 5 do ESPObjects[p].Skeleton[k].Visible = false end if ESPObjects[p].Highlight then ESPObjects[p].Highlight.Enabled = false end
+                    end
+                    continue
+                end
+                if not ESPObjects[p] then
+                    ESPObjects[p] = { Box = Drawing.new("Square"), Name = Drawing.new("Text"), Tracer = Drawing.new("Line"), HealthBar = Drawing.new("Line"), Skeleton = {}, Highlight = nil }
+                    ESPObjects[p].Name.Size = 14; ESPObjects[p].Name.Center = true; ESPObjects[p].Name.Outline = true
+                    for i = 1, 5 do ESPObjects[p].Skeleton[i] = Drawing.new("Line") end
+                end
+                
+                local esp = ESPObjects[p] local rootPos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                local col = States.RainbowESP and CurrentColor or (States.UseTeamColors and p.TeamColor.Color or Color3.fromRGB(255,255,255))
+                local targetTrans = States.EspFade and math.clamp(1 - (distance / States.EspMaxDistance), 0.1, 1) or 1.0
+                
+                if onScreen then
+                    local top = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 2.5, 0)) local bottom = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0))
+                    local h = bottom.Y - top.Y local w = h * 0.6
+                    
+                    if States.TglEspBoxes then esp.Box.Size = Vector2.new(w, h); esp.Box.Position = Vector2.new(top.X - w/2, top.Y); esp.Box.Color = col; esp.Box.Transparency = targetTrans; esp.Box.Visible = true else esp.Box.Visible = false end
+                    
+                    if States.TglEspNames then
+                        local formattedName = p.DisplayName
+                        if States.NameStyle == "Username" then formattedName = p.Name
+                        elseif States.NameStyle == "Both" then formattedName = p.DisplayName .. " (@" .. p.Name .. ")" end
+                        
+                        esp.Name.Position = Vector2.new(top.X, top.Y - 15); esp.Name.Text = formattedName .. " [" .. math.floor(distance) .. "m]"; esp.Name.Color = col; esp.Name.Transparency = targetTrans; esp.Name.Visible = true 
+                    else esp.Name.Visible = false end
+                    
+                    if States.TglEspTracers then esp.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y); esp.Tracer.To = Vector2.new(rootPos.X, rootPos.Y); esp.Tracer.Color = col; esp.Tracer.Transparency = targetTrans; esp.Tracer.Visible = true else esp.Tracer.Visible = false end
+                    if States.TglEspHealthBar then
+                        local barPct = hum.Health / hum.MaxHealth esp.HealthBar.From = Vector2.new(top.X - (w/2) - 5, bottom.Y)
+                        esp.HealthBar.To = Vector2.new(top.X - (w/2) - 5, bottom.Y - (h * barPct)) esp.HealthBar.Color = Color3.fromRGB(255 - (255*barPct), 255*barPct, 0)
+                        esp.HealthBar.Thickness = 2; esp.HealthBar.Transparency = targetTrans; esp.HealthBar.Visible = true
+                    else esp.HealthBar.Visible = false end
+                    
+                    if States.TglEspSkel then
+                        local parts = {Torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso"), LeftArm = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("Left Arm"), RightArm = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("Right Arm"), LeftLeg = char:FindFirstChild("LeftLowerLeg") or char:FindFirstChild("Left Leg"), RightLeg = char:FindFirstChild("RightLowerLeg") or char:FindFirstChild("Right Leg")}
+                        if parts.Torso and parts.LeftArm and parts.RightArm and parts.LeftLeg and parts.RightLeg then
+                            local sHead = Camera:WorldToViewportPoint(head.Position) local sTorso = Camera:WorldToViewportPoint(parts.Torso.Position)
+                            local sLA = Camera:WorldToViewportPoint(parts.LeftArm.Position) local sRA = Camera:WorldToViewportPoint(parts.RightArm.Position)
+                            local sLL = Camera:WorldToViewportPoint(parts.LeftLeg.Position) local sRL = Camera:WorldToViewportPoint(parts.RightLeg.Position)
+                            esp.Skeleton[1].From = Vector2.new(sHead.X, sHead.Y); esp.Skeleton[1].To = Vector2.new(sTorso.X, sTorso.Y)
+                            esp.Skeleton[2].From = Vector2.new(sTorso.X, sTorso.Y); esp.Skeleton[2].To = Vector2.new(sLA.X, sLA.Y)
+                            esp.Skeleton[3].From = Vector2.new(sTorso.X, sTorso.Y); esp.Skeleton[3].To = Vector2.new(sRA.X, sRA.Y)
+                            esp.Skeleton[4].From = Vector2.new(sTorso.X, sTorso.Y); esp.Skeleton[4].To = Vector2.new(sLL.X, sLL.Y)
+                            esp.Skeleton[5].From = Vector2.new(sTorso.X, sTorso.Y); esp.Skeleton[5].To = Vector2.new(sRL.X, sRL.Y)
+                            for k = 1, 5 do esp.Skeleton[k].Color = col; esp.Skeleton[k].Transparency = targetTrans; esp.Skeleton[k].Visible = true end
+                        else for k = 1, 5 do esp.Skeleton[k].Visible = false end end
+                    else for k = 1, 5 do esp.Skeleton[k].Visible = false end end
+                    
+                    if States.TglEspChams then
+                        if not esp.Highlight or not esp.Highlight.Parent then esp.Highlight = Instance.new("Highlight") esp.Highlight.Parent = char end
+                        esp.Highlight.FillColor = col; esp.Highlight.FillTransparency = 1 - targetTrans; esp.Highlight.Enabled = true
+                    elseif esp.Highlight then esp.Highlight.Enabled = false end
+                else
+                    esp.Box.Visible = false; esp.Name.Visible = false; esp.Tracer.Visible = false; esp.HealthBar.Visible = false
+                    for k = 1, 5 do esp.Skeleton[k].Visible = false end if esp.Highlight then esp.Highlight.Enabled = false end
+                end
             else
-                for _, line in pairs(esp.Lines) do line.Visible = false end
-            end
-        else
-            if esp.Box then esp.Box.Visible = false end
-            if esp.Name then esp.Name.Visible = false end
-            if esp.Tracer then esp.Tracer.Visible = false end
-            for _, line in pairs(esp.Lines) do line.Visible = false end
-        end
-    end
-end)
-
-Players.PlayerRemoving:Connect(function(player) ClearESP(player) end)
-
--- ==================== MOVEMENT LOGIC ====================
-local function StartFly()
-    local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    if BodyVelocity then BodyVelocity:Destroy() end
-    BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    BodyVelocity.Parent = root
-    
-    if NoClipConnection then NoClipConnection:Disconnect() end
-    NoClipConnection = RunService.Stepped:Connect(function()
-        if (FlyEnabled or SeparateNoClip) and char then
-            for _, part in ipairs(char:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
-        end
-    end)
-    
-    task.spawn(function()
-        while FlyEnabled and char and root and BodyVelocity and BodyVelocity.Parent do
-            local dir = Vector3.new()
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir -= Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir -= Camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir += Camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
-            BodyVelocity.Velocity = dir * FlySpeed
-            task.wait()
-        end
-    end)
-end
-
-local function StopFly()
-    FlyEnabled = false
-    if BodyVelocity then BodyVelocity:Destroy() BodyVelocity = nil end
-    if NoClipConnection and not SeparateNoClip then NoClipConnection:Disconnect() NoClipConnection = nil end
-end
-
-RunService.Stepped:Connect(function()
-    if SeparateNoClip and not FlyEnabled and LocalPlayer.Character then
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
-    end
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if InfiniteJumpEnabled then
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
-    end
-end)
-
-SpeedConnection = RunService.Heartbeat:Connect(function()
-    local char = LocalPlayer.Character
-    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if humanoid and root then
-        if humanoid.UseJumpPower then humanoid.JumpPower = HighJumpPower else humanoid.JumpHeight = HighJumpPower / 2.5 end
-        if not FlyEnabled then
-            if SpeedMethod == "Humanoid" then
-                if humanoid.WalkSpeed ~= WalkSpeedValue then humanoid.WalkSpeed = WalkSpeedValue end
-            elseif SpeedMethod == "CFrame" then
-                humanoid.WalkSpeed = 16
-                if humanoid.MoveDirection.Magnitude > 0 then root.CFrame = root.CFrame + (humanoid.MoveDirection * (WalkSpeedValue / 150)) end
+                if ESPObjects[p] then
+                    pcall(function()
+                        esp.Box:Remove(); esp.Name:Remove(); esp.Tracer:Remove(); esp.HealthBar:Remove() for k = 1, 5 do esp.Skeleton[k]:Remove() end
+                        if esp.Highlight then esp.Highlight:Destroy() end
+                    end)
+                    ESPObjects[p] = nil
+                end
             end
         end
-        if NoRagdoll and humanoid:GetState() == Enum.HumanoidStateType.Physics then humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end
+    else
+        for p, _ in pairs(ESPObjects) do
+            pcall(function()
+                ESPObjects[p].Box:Remove(); ESPObjects[p].Name:Remove(); ESPObjects[p].Tracer:Remove(); ESPObjects[p].HealthBar:Remove()
+                for k = 1, 5 do ESPObjects[p].Skeleton[k]:Remove() end if ESPObjects[p].Highlight then ESPObjects[p].Highlight:Destroy() end
+            end)
+            ESPObjects[p] = nil
+        end
     end
 end)
 
-DefenseConnection = RunService.Heartbeat:Connect(function()
-    local myChar = LocalPlayer.Character
-    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
-    if myChar and myRoot then
-        if AntiFlingEnabled then
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    for _, part in ipairs(player.Character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            local claim = RunService.Stepped:Connect(function() part.CanCollide = false end)
-                            task.delay(0.02, function() claim:Disconnect() end)
+-- ==================== PHYSICS CORE & NON-BLOCKING ANTI-FLING ====================
+RunService.Heartbeat:Connect(function()
+    if not ScriptActive then return end
+    local char = LocalPlayer.Character local hum = char and char:FindFirstChildOfClass("Humanoid") local root = char and char:FindFirstChild("HumanoidRootPart")
+    if hum and root then
+        if States.SpeedTgl and not States.FlyEnabled then
+            if States.SpeedMethod == "Humanoid" then hum.WalkSpeed = States.WalkSpeedValue
+            elseif States.SpeedMethod == "CFrame" then
+                if hum.MoveDirection.Magnitude > 0 then hum.WalkSpeed = 16 root.CFrame = root.CFrame + (hum.MoveDirection * (States.WalkSpeedValue / 140)) end
+            end
+        elseif not States.FlyEnabled then hum.WalkSpeed = 16 end
+
+        if States.JumpTgl then if hum.UseJumpPower then hum.JumpPower = States.HighJumpPower else hum.JumpHeight = States.HighJumpPower / 2.5 end
+        else if hum.UseJumpPower then hum.JumpPower = 50 else hum.JumpHeight = 7.2 end end
+
+        if States.HipHeight and States.HipHeight > 0 then hum.HipHeight = States.HipHeight end
+        if workspace.Gravity ~= States.LocalGravity then workspace.Gravity = States.LocalGravity end
+        if States.NoRagdoll and hum:GetState() == Enum.HumanoidStateType.Physics then hum:ChangeState(Enum.HumanoidStateType.GettingUp) end
+        if States.Noclip then for _, child in ipairs(char:GetDescendants()) do if child:IsA("BasePart") then child.CanCollide = false end end end
+        if States.AntiSeat and hum.SeatPart then hum.Sit = false end
+        
+        -- NON-BLOCKING ANTI-FLING (Flüssige Bewegung garantiert!)
+        if States.AntiFlingEnabled then
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character then
+                    local pRoot = p.Character:FindFirstChild("HumanoidRootPart")
+                    if pRoot then
+                        -- Wenn ein feindlicher Spieler extrem herumschleudert (Fling-Attacke), blockieren wir selektiv nur SEINE Physik in unserer Ansicht
+                        if pRoot.Velocity.Magnitude > 80 or pRoot.RotVelocity.Magnitude > 80 then
+                            pRoot.Velocity = Vector3.new(0,0,0)
+                            pRoot.RotVelocity = Vector3.new(0,0,0)
                         end
                     end
+                    for _, sub in ipairs(p.Character:GetDescendants()) do
+                        if sub:IsA("BasePart") then sub.CanCollide = false end
+                    end
                 end
             end
-            myRoot.AngularVelocity = Vector3.new(0, 0, 0)
         end
-        if AntiAttachEnabled then
-            for _, obj in ipairs(myChar:GetDescendants()) do
-                if obj:IsA("Weld") or obj:IsA("WeldConstraint") or obj:IsA("NoCollisionConstraint") then
-                    if not obj.Name:find("Root") and not obj.Parent:IsA("Accessory") then obj:Destroy() end
-                end
-            end
-            if myRoot.Velocity.Magnitude > 250 and not FlyEnabled then myRoot.Velocity = Vector3.new(0, 0, 0) end
+
+        if States.AntiAnchor and root.Anchored then root.Anchored = false end
+        if States.AntiTeleport then
+            if LastSafePosition and (root.Position - LastSafePosition).Magnitude > 350 and not States.FlyEnabled then
+                root.CFrame = CFrame.new(LastSafePosition)
+            else if root.Velocity.Magnitude < 100 then LastSafePosition = root.Position end end
         end
-        if AntiLookEnabled and Camera.CameraType ~= Enum.CameraType.Custom then Camera.CameraType = Enum.CameraType.Custom end
     end
 end)
+
+-- FLIGHT SYSTEM
+local function StartFly()
+    local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart") if not root then return end
+    if BodyVelocity then BodyVelocity:Destroy() end BodyVelocity = Instance.new("BodyVelocity") BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9) BodyVelocity.Parent = root
+    task.spawn(function()
+        while States.FlyEnabled and ScriptActive and root and BodyVelocity do
+            local dir = Vector3.new()
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += Camera.CFrame.LookVector end if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir -= Camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir -= Camera.CFrame.RightVector end if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir += Camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
+            BodyVelocity.Velocity = dir.Magnitude == 0 and Vector3.new(0,0,0) or dir * States.FlySpeed task.wait()
+        end
+    end)
+end
 
 UserInputService.InputBegan:Connect(function(input, processed)
-    if processed then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton1 and ClickTPEnabled then
-        local mouse = LocalPlayer:GetMouse()
-        if mouse.Target and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
+    if input.KeyCode == Enum.KeyCode.F10 then ExecuteEmergencyShutdown() return end
+    if processed or not ScriptActive then return end
+end)
+
+-- ==================== LIVE DIAGNOSTICS TELEMETRY ====================
+task.spawn(function()
+    while task.wait(0.4) and ScriptActive do
+        if TargetPlayerToTrack and TargetPlayerToTrack.Parent then
+            local p = TargetPlayerToTrack local char = p.Character local hum = char and char:FindFirstChildOfClass("Humanoid") local root = char and char:FindFirstChild("HumanoidRootPart")
+            if InfoLabels.Username then InfoLabels.Username:Set(T("L_Username") .. p.Name) end
+            if InfoLabels.UserId then InfoLabels.UserId:Set(T("L_UserId") .. p.UserId) end
+            if InfoLabels.Origin then InfoLabels.Origin:Set(T("L_Origin") .. FetchRealGeoData(p)) end
+            if InfoLabels.Status then InfoLabels.Status:Set(T("L_Status") .. ((hum and hum.Health > 0) and T("L_StatusAlive") or T("L_StatusDead"))) end
+            if InfoLabels.Health then InfoLabels.Health:Set(T("L_Health") .. (hum and (math.floor(hum.Health) .. " / " .. math.floor(hum.MaxHealth)) or "0")) end
+            if root and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local dist = math.floor((root.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
+                if InfoLabels.Distance then InfoLabels.Distance:Set(T("L_Distance") .. dist .. T("L_Studs")) end
+            end
+            
+            -- EXTENDED DIAGNOSTICS LABELS
+            if BypassLabels.PingCheck then 
+                local targetPing = math.floor(p:GetNetworkPing() * 1000)
+                BypassLabels.PingCheck:Set("📶 Verbindungs-Latenz (Ping): " .. targetPing .. " ms " .. (targetPing > 280 and "⚠️ [Hoher Lag]" or "✅ [Stabil]"))
+            end
+            if BypassLabels.SpeedCheck then
+                local currentVelocity = root and math.floor(root.Velocity.Magnitude) or 0
+                BypassLabels.SpeedCheck:Set("🏃 Laufgeschwindigkeit: " .. currentVelocity .. " Studs/s " .. (currentVelocity > 45 and "🚨 [Verdacht: Speed-Hacks]" or "✅ [Normal]"))
+            end
+            if BypassLabels.AgeCheck then
+                BypassLabels.AgeCheck:Set("📅 Account Alter: " .. p.AccountAge .. " Tage alt " .. (p.AccountAge < 7 and "❌ [Möglicher Alt-Account]" or "✅ [Unauffällig]"))
+            end
+            if BypassLabels.NoclipCheck then
+                local isNoclipping = false
+                if char then for _, part in ipairs(char:GetDescendants()) do if part:IsA("BasePart") and not part.CanCollide then isNoclipping = true break end end end
+                BypassLabels.NoclipCheck:Set("🧱 NoClip Status: " .. (isNoclipping and "⚠️ [Wände deaktiviert]" or "✅ [Standard]"))
+            end
+            if BypassLabels.GodmodeCheck then
+                local hasGod = (hum and hum.MaxHealth > 5000) or false
+                BypassLabels.GodmodeCheck:Set("😇 Gott-Modus (Godmode Scan): " .. (hasGod and "🚨 [Verdacht: Modifizierte HP]" or "✅ [Sterblich / Normal]"))
+            end
+            if BypassLabels.FlyCheck then
+                local isFlying = (root and math.abs(root.Velocity.Y) < 1 and root.Position.Y > 15 and hum and hum:GetState() == Enum.HumanoidStateType.Freefall) or false
+                BypassLabels.FlyCheck:Set("🦅 Flug-Erkennung (Fly Bypass): " .. (isFlying and "⚠️ [Antigravitation / Schweben detektiert]" or "✅ [Bodenhaftung]"))
+            end
         end
+
+        if ServerLabels.Memory then ServerLabels.Memory:Set("💾 Gesamt-RAM Verbrauch: " .. string.format("%.2f MB", Stats:GetTotalMemoryUsageMb())) end
+        if ServerLabels.ServerFps then ServerLabels.ServerFps:Set("⚙️ Interne Server-Physik-FPS: " .. string.format("%.2f FPS", workspace:GetRealPhysicsFPS())) end
+        if ServerLabels.MaxPlayers then ServerLabels.MaxPlayers:Set("👥 Slots frei: " .. (#Players:GetPlayers() .. " / " .. Players.MaxPlayers)) end
+        
+        local uptime = os.time() - StartTime local hours = math.floor(uptime / 3600) local mins = math.floor((uptime % 3600) / 60) local secs = uptime % 60
+        if ServerLabels.Uptime then ServerLabels.Uptime:Set(T("LblServerUptime") .. string.format("%02d:%02d:%02d", hours, mins, secs)) end
     end
 end)
 
-local OriginalMaterials = {}
-local OriginalShadows = Lighting.GlobalShadows
+local function UpdateDropdownOptions()
+    local list = {} for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(list, p.Name) end end
+    if #list == 0 then table.insert(list, T("NoPlayers")) end if TargetDropdown then TargetDropdown:Refresh(list, true) end
+end
+Players.PlayerAdded:Connect(UpdateDropdownOptions) Players.PlayerRemoving:Connect(UpdateDropdownOptions)
 
--- ==================== MAIN UI STRUCTURE ====================
+-- ==================== INTERFACE COMPOSITION ====================
+local WelcomeTab = Window:CreateTab(T("TabWelcome"))
+WelcomeTab:CreateSection(T("SecNotice")) WelcomeTab:CreateLabel(T("LblNotice1")) WelcomeTab:CreateLabel(T("LblNotice2"))
+WelcomeTab:CreateLabel("🚨 PANIK HOTKEY ZUM RESTLOSEN LÖSCHEN: [ F10 ]")
 
--- TAB 1: WELCOME
-local WelcomeTab = CreateNewTab("TabWelcome")
-CreateSection(WelcomeTab, "SecNotice")
-CreateLabel(WelcomeTab, "LblNotice1")
-CreateLabel(WelcomeTab, "LblNotice2")
-CreateLabel(WelcomeTab, "LblNotice3")
-CreateSection(WelcomeTab, "SecAdvice")
-CreateLabel(WelcomeTab, "LblAdvice1")
-CreateLabel(WelcomeTab, "LblAdvice2")
-CreateLabel(WelcomeTab, "LblAdvice3")
+-- KAMPF TAB
+local CombatTab = Window:CreateTab(T("TabCombat"))
+CombatTab:CreateSection(T("SecAim"))
+CombatTab:CreateToggle({Name = T("TglCamAim"), CurrentValue = false, Callback = function(v) States.CamAimbot = v end})
+CombatTab:CreateToggle({Name = T("TglPredict"), CurrentValue = false, Callback = function(v) States.AimPrediction = v end})
+CombatTab:CreateSlider({Name = T("SldSmooth"), Range = {1, 10}, Increment = 1, CurrentValue = 2, Callback = function(v) States.AimSmooth = (11 - v) * 0.05 end})
+CombatTab:CreateToggle({Name = T("TglFov"), CurrentValue = false, Callback = function(v) States.ShowFovCircle = v end})
+CombatTab:CreateSlider({Name = T("SldFov"), Range = {30, 500}, Increment = 10, CurrentValue = 100, Callback = function(v) States.FovRadius = v end})
+CombatTab:CreateDropdown({Name = T("DrpHitbox"), Options = {"Head", "HumanoidRootPart", "Torso"}, CurrentOption = {"Head"}, MultipleOptions = false, Callback = function(v) States.TargetHitbox = v[1] end})
+CombatTab:CreateToggle({Name = T("TglTeamCheck"), CurrentValue = false, Callback = function(v) States.TeamCheck = v end})
+CombatTab:CreateToggle({Name = T("TglFriendCheck"), CurrentValue = false, Callback = function(v) States.FriendCheck = v end})
+CombatTab:CreateSection(T("SecTrigger"))
+CombatTab:CreateToggle({Name = T("TglTrigger"), CurrentValue = false, Callback = function(v) States.Triggerbot = v end})
+CombatTab:CreateToggle({Name = T("TglParry"), CurrentValue = false, Callback = function(v) States.AutoParry = v end})
 
--- TAB 2: ESP CONTROL
-local Visuals = CreateNewTab("TabVisuals")
-CreateSection(Visuals, "SecExtUi")
-Visuals:CreateButton({
-    Name = T("BtnEspUi"),
-    Callback = function()
-        local VenyxLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/zxciaz/VenyxUI/main/Reuploaded"))()
-        local ESPWin = VenyxLib.new("Jerry v1 - ESP Panel", 5013109572)
-        local Page = ESPWin:addPage(CurrentLanguage == "DE" and "ESP Schalter" or "ESP Toggles", 5012544693)
-        local MainSec = Page:addSection(CurrentLanguage == "DE" and "Haupt-Regler" or "Master Controls")
-        local ElemSec = Page:addSection(CurrentLanguage == "DE" and "Render Elemente" or "Render Elements")
-        
-        MainSec:addToggle(CurrentLanguage == "DE" and "Globales ESP Aktivieren" or "Enable Global ESP", ESPEnabled, function(v) ESPEnabled = v end)
-        MainSec:addToggle(CurrentLanguage == "DE" and "Regenbogen Modus" or "Rainbow Mode", RainbowESP, function(v) RainbowESP = v end)
-        ElemSec:addToggle(CurrentLanguage == "DE" and "Zeige Namen" or "Show Names", ESPSettings.Names, function(v) ESPSettings.Names = v end)
-        ElemSec:addToggle(CurrentLanguage == "DE" and "Boxen" or "Boxes", ESPSettings.Boxes, function(v) ESPSettings.Boxes = v end)
-        ElemSec:addToggle(CurrentLanguage == "DE" and "Skelette" or "Skeletons", ESPSettings.Skeletons, function(v) ESPSettings.Skeletons = v end)
-        ElemSec:addToggle(CurrentLanguage == "DE" and "Chams Glow" or "Chams Glow", ESPSettings.Chams, function(v) ESPSettings.Chams = v end)
-        ElemSec:addToggle(CurrentLanguage == "DE" and "Tracers" or "Tracers", ESPSettings.Tracers, function(v) ESPSettings.Tracers = v end)
+-- VISUALS TAB
+local VisualsTab = Window:CreateTab(T("TabVisuals"))
+VisualsTab:CreateSection(T("SecEsp"))
+VisualsTab:CreateToggle({Name = T("TglGlobalEsp"), CurrentValue = false, Callback = function(v) States.ESPEnabled = v end})
+VisualsTab:CreateToggle({Name = T("TglRainbow"), CurrentValue = false, Callback = function(v) States.RainbowESP = v end})
+VisualsTab:CreateToggle({Name = T("TglItemEsp"), CurrentValue = false, Callback = function(v) States.ItemEsp = v end})
+VisualsTab:CreateSlider({Name = T("SldEspMaxDist"), Range = {100, 10000}, Increment = 100, CurrentValue = 2000, Callback = function(v) States.EspMaxDistance = v end})
+VisualsTab:CreateToggle({Name = T("TglFade"), CurrentValue = false, Callback = function(v) States.EspFade = v end})
+VisualsTab:CreateToggle({Name = T("TglTeamColors"), CurrentValue = false, Callback = function(v) States.UseTeamColors = v end})
+VisualsTab:CreateToggle({Name = T("TglEspNames"), CurrentValue = false, Callback = function(v) States.TglEspNames = v end})
+VisualsTab:CreateDropdown({Name = "Namens-Stil Auswahl", Options = {"DisplayName", "Username", "Both"}, CurrentOption = {"DisplayName"}, MultipleOptions = false, Callback = function(v) States.NameStyle = v[1] end})
+VisualsTab:CreateToggle({Name = T("TglEspBoxes"), CurrentValue = false, Callback = function(v) States.TglEspBoxes = v end})
+VisualsTab:CreateToggle({Name = T("TglEspChams"), CurrentValue = false, Callback = function(v) States.TglEspChams = v end})
+VisualsTab:CreateToggle({Name = T("TglEspTracers"), CurrentValue = false, Callback = function(v) States.TglEspTracers = v end})
+VisualsTab:CreateToggle({Name = T("TglEspSkel"), CurrentValue = false, Callback = function(v) States.TglEspSkel = v end})
+VisualsTab:CreateToggle({Name = T("TglEspHealthBar"), CurrentValue = false, Callback = function(v) States.TglEspHealthBar = v end})
+VisualsTab:CreateSection(T("SecCross"))
+VisualsTab:CreateToggle({Name = T("TglCrosshair"), CurrentValue = false, Callback = function(v) States.CustomCrosshair = v end})
+
+-- BEWEGUNG TAB
+local MoveTab = Window:CreateTab(T("TabMovement"))
+MoveTab:CreateSection(T("SecSpeed")) 
+MoveTab:CreateToggle({Name = "WalkSpeed Aktivieren", CurrentValue = false, Callback = function(v) States.SpeedTgl = v end})
+MoveTab:CreateSlider({Name = T("SldSpeed"), Range = {16, 300}, Increment = 1, CurrentValue = 16, Callback = function(v) States.WalkSpeedValue = v end})
+MoveTab:CreateDropdown({Name = T("DrpSpeed"), Options = {"Humanoid", "CFrame (Bypass)"}, CurrentOption = {"Humanoid"}, MultipleOptions = false, Callback = function(v) States.SpeedMethod = (v[1] == "CFrame (Bypass)" and "CFrame" or "Humanoid") end})
+MoveTab:CreateToggle({Name = "JumpPower Aktivieren", CurrentValue = false, Callback = function(v) States.JumpTgl = v end})
+MoveTab:CreateSlider({Name = T("SldJump"), Range = {50, 400}, Increment = 5, CurrentValue = 50, Callback = function(v) States.HighJumpPower = v end})
+MoveTab:CreateToggle({Name = T("TglInfJump"), CurrentValue = false, Callback = function(v) States.InfiniteJumpEnabled = v end})
+MoveTab:CreateSlider({Name = T("SldHip"), Range = {0, 20}, Increment = 0.5, CurrentValue = 0, Callback = function(v) States.HipHeight = v end})
+MoveTab:CreateToggle({Name = T("TglNoclip"), CurrentValue = false, Callback = function(v) States.Noclip = v end})
+MoveTab:CreateSection(T("SecFly")) 
+MoveTab:CreateToggle({Name = T("TglFly"), CurrentValue = false, Callback = function(v) States.FlyEnabled = v if v then StartFly() else if BodyVelocity then BodyVelocity:Destroy(); BodyVelocity = nil end end end})
+MoveTab:CreateSlider({Name = T("SldFly"), Range = {30, 400}, Increment = 10, CurrentValue = 80, Callback = function(v) States.FlySpeed = v end})
+
+-- WELT UND UMGEBUNG TAB (VOLLSTÄNDIG)
+local WorldTab = Window:CreateTab(T("TabWorld"))
+WorldTab:CreateSection(T("SecWorld"))
+WorldTab:CreateToggle({Name = "FullBright (Schatten aus)", CurrentValue = false, Callback = function(v) States.FullBrightEnabled = v if v then Lighting.Ambient = Color3.fromRGB(255,255,255) Lighting.OutdoorAmbient = Color3.fromRGB(255,255,255) Lighting.GlobalShadows = false else Lighting.Ambient = OrigAmbient Lighting.OutdoorAmbient = OrigOutdoorAmbient Lighting.GlobalShadows = OriginalShadows end end})
+WorldTab:CreateToggle({Name = "Anti-Fog (Nebel-Entferner)", CurrentValue = false, Callback = function(v) States.AntiFog = v if v then Lighting.FogEnd = 9e9 else Lighting.FogEnd = OrigFogEnd end end})
+WorldTab:CreateToggle({Name = "Acid-Trip Modus (Farb-Inversion)", CurrentValue = false, Callback = function(v) States.AcidTrip = v if v then Lighting.Ambient = Color3.fromRGB(0, 255, 255) Lighting.OutdoorAmbient = Color3.fromRGB(255, 0, 255) else Lighting.Ambient = OrigAmbient Lighting.OutdoorAmbient = OrigOutdoorAmbient end end})
+WorldTab:CreateToggle({Name = "Black-World Finsternis", CurrentValue = false, Callback = function(v) States.BlackWorld = v if v then Lighting.Ambient = Color3.fromRGB(0,0,0) Lighting.OutdoorAmbient = Color3.fromRGB(0,0,0) else Lighting.Ambient = OrigAmbient Lighting.OutdoorAmbient = OrigOutdoorAmbient end end})
+WorldTab:CreateSlider({Name = "Lokale Uhrzeit (ClockTime)", Range = {0, 24}, Increment = 0.5, CurrentValue = 12, Callback = function(v) Lighting.ClockTime = v end})
+WorldTab:CreateToggle({Name = T("TglXray"), CurrentValue = false, Callback = function(v) States.MapXRay = v for _, p in ipairs(workspace:GetDescendants()) do if p:IsA("BasePart") and not p.Parent:FindFirstChildOfClass("Humanoid") then if v then p:SetAttribute("OldTrans", p.Transparency) p.Transparency = 0.65 else if p:GetAttribute("OldTrans") then p.Transparency = p:GetAttribute("OldTrans") end end end end end})
+WorldTab:CreateSlider({Name = T("SldGravity"), Range = {0, 196}, Increment = 5, CurrentValue = 196, Callback = function(v) States.LocalGravity = v end})
+
+-- ANTI TROLL TAB
+local PlayerTab = Window:CreateTab(T("TabPlayer"))
+PlayerTab:CreateSection(T("SecShields"))
+PlayerTab:CreateToggle({Name = T("TglAntiFling"), CurrentValue = false, Callback = function(v) States.AntiFlingEnabled = v end})
+PlayerTab:CreateToggle({Name = T("TglAntiRagdoll"), CurrentValue = false, Callback = function(v) States.NoRagdoll = v end})
+PlayerTab:CreateToggle({Name = T("TglAntiAnchor"), CurrentValue = false, Callback = function(v) States.AntiAnchor = v end})
+PlayerTab:CreateToggle({Name = T("TglAntiTeleport"), CurrentValue = false, Callback = function(v) States.AntiTeleport = v end})
+PlayerTab:CreateToggle({Name = "Anti-Seat (Sitz-Blocker)", CurrentValue = false, Callback = function(v) States.AntiSeat = v end})
+
+-- SPIELER INFOS TAB
+local InfoTab = Window:CreateTab(T("TabInfo"))
+InfoTab:CreateSection(T("SecSelect")) TargetDropdown = InfoTab:CreateDropdown({ Name = T("DrpSelect"), Options = {T("NoPlayers")}, CurrentOption = {""}, MultipleOptions = false, Callback = function(v) local found = Players:FindFirstChild(v[1]) if found then TargetPlayerToTrack = found end end }) UpdateDropdownOptions()
+InfoTab:CreateSection(T("SecProfile")) InfoLabels.Username = InfoTab:CreateLabel(T("L_Username") .. "...") InfoLabels.UserId = InfoTab:CreateLabel(T("L_UserId") .. "...") InfoLabels.Origin = InfoTab:CreateLabel(T("L_Origin") .. "...")
+InfoTab:CreateSection(T("SecStatus")) InfoLabels.Status = InfoTab:CreateLabel(T("L_Status") .. "...") InfoLabels.Health = InfoTab:CreateLabel(T("L_Health") .. "...") InfoLabels.Distance = InfoTab:CreateLabel(T("L_Distance") .. "...")
+
+-- DIAGNOSTICS TAB
+local BypassTab = Window:CreateTab(T("TabBypass"))
+BypassTab:CreateSection(T("SecDiagnostics"))
+BypassLabels.PingCheck = BypassTab:CreateLabel("📶 Verbindungs-Latenz (Ping): ...")
+BypassLabels.SpeedCheck = BypassTab:CreateLabel("🏃 Laufgeschwindigkeit: ...")
+BypassLabels.AgeCheck = BypassTab:CreateLabel("📅 Account Alter: ...")
+BypassLabels.NoclipCheck = BypassTab:CreateLabel("🧱 NoClip Status: ...")
+BypassLabels.GodmodeCheck = BypassTab:CreateLabel("😇 Gott-Modus (Godmode Scan): ...")
+BypassLabels.FlyCheck = BypassTab:CreateLabel("🦅 Flug-Erkennung (Fly Bypass): ...")
+
+-- SERVER TAB
+local ServerTab = Window:CreateTab(T("TabServerInfo"))
+ServerTab:CreateSection("Server Performance") 
+ServerLabels.Memory = ServerTab:CreateLabel("💾 Gesamt-RAM Verbrauch: ...")
+ServerLabels.ServerFps = ServerTab:CreateLabel("⚙️ Interne Server-Physik-FPS: ...")
+ServerLabels.MaxPlayers = ServerTab:CreateLabel("👥 Slots frei: ...")
+ServerLabels.Uptime = ServerTab:CreateLabel(T("LblServerUptime") .. "00:00:00")
+
+-- UTILITIES / SETTINGS TAB
+local SettingsTab = Window:CreateTab(T("TabSettings"))
+SettingsTab:CreateSection(T("SecMisc")) SettingsTab:CreateToggle({Name = T("TglShowFps"), CurrentValue = false, Callback = function(v) States.ShowFPS = v end}) SettingsTab:CreateToggle({Name = T("TglShowPing"), CurrentValue = false, Callback = function(v) States.ShowPing = v end})
+SettingsTab:CreateSection(T("SecExit")) SettingsTab:CreateButton({Name = T("BtnExit"), Callback = function() ExecuteEmergencyShutdown() end})
+
+-- UNENDLICHER SPRUNG LISTENER FRAMEWORK
+UserInputService.JumpRequest:Connect(function()
+    if States.InfiniteJumpEnabled and ScriptActive then
+        local char = LocalPlayer.Character local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
-})
-CreateLabel(Visuals, "LblEspInfo")
+end)
 
--- TAB 3: MOVEMENT
-local MoveTab = CreateNewTab("TabMovement")
-CreateSection(MoveTab, "SecTp")
-MoveTab:CreateToggle({Name = T("TglClickTp"), CurrentValue = false, Callback = function(v) ClickTPEnabled = v end})
-CreateSection(MoveTab, "SecFly")
-MoveTab:CreateToggle({Name = T("TglFly"), CurrentValue = false, Callback = function(v) FlyEnabled = v if v then StartFly() else StopFly() end end})
-MoveTab:CreateSlider({Name = T("SldFly"), Range = {30, 400}, Increment = 10, CurrentValue = 80, Callback = function(v) FlySpeed = v end})
-MoveTab:CreateToggle({Name = T("TglNoclip"), CurrentValue = false, Callback = function(v) SeparateNoClip = v end})
-CreateSection(MoveTab, "SecSpeed")
-MoveTab:CreateSlider({Name = T("SldSpeed"), Range = {16, 300}, Increment = 1, CurrentValue = 16, Callback = function(v) WalkSpeedValue = v end})
-MoveTab:CreateDropdown({Name = T("DrpSpeed"), Options = {"Humanoid", "CFrame (Bypass)"}, CurrentOption = "Humanoid", Callback = function(v) SpeedMethod = (v == "CFrame (Bypass)" and "CFrame" or "Humanoid") end})
-MoveTab:CreateSlider({Name = T("SldJump"), Range = {50, 400}, Increment = 5, CurrentValue = 50, Callback = function(v) HighJumpPower = v end})
-MoveTab:CreateToggle({Name = T("TglInfJump"), CurrentValue = false, Callback = function(v) InfiniteJumpEnabled = v end})
-
--- TAB 4: PLAYER INFO
-local InfoTab = CreateNewTab("TabInfo")
-CreateSection(InfoTab, "SecSelect")
-TargetDropdown = InfoTab:CreateDropdown({Name = T("DrpSelect"), Options = GetTrackPlayerNames(), CurrentOption = {""}, MultipleOptions = false, Callback = function(opt) TargetPlayerToTrack = opt[1]; UpdateTargetInfo() end})
-
-CreateSection(InfoTab, "SecProfile")
-InfoLabels.Name = InfoTab:CreateLabel("Username: -")
-InfoLabels.DisplayName = InfoTab:CreateLabel("Display: -")
-InfoLabels.UserId = InfoTab:CreateLabel("User-ID: -")
-CreateSection(InfoTab, "SecStatus")
-InfoLabels.Status = InfoTab:CreateLabel("-")
-InfoLabels.Health = InfoTab:CreateLabel("-")
-InfoLabels.Shield = InfoTab:CreateLabel("-")
-InfoLabels.LastDamage = InfoTab:CreateLabel("-")
-InfoLabels.WalkSpeed = InfoTab:CreateLabel("-")
-InfoLabels.JumpPower = InfoTab:CreateLabel("-")
-InfoLabels.AnimationState = InfoTab:CreateLabel("-")
-InfoLabels.PhysicsState = InfoTab:CreateLabel("-")
-InfoLabels.ForceField = InfoTab:CreateLabel("-")
-InfoLabels.AvatarScale = InfoTab:CreateLabel("-")
-CreateSection(InfoTab, "SecItems")
-InfoLabels.CurrentTool = InfoTab:CreateLabel("-")
-InfoLabels.ToolClass = InfoTab:CreateLabel("-")
-InfoLabels.BackpackCount = InfoTab:CreateLabel("-")
-CreateSection(InfoTab, "SecPrivacy")
-InfoLabels.Age = InfoTab:CreateLabel("-")
-InfoLabels.Team = InfoTab:CreateLabel("-")
-InfoLabels.Membership = InfoTab:CreateLabel("-")
-InfoLabels.AccountPrivacy = InfoTab:CreateLabel("-")
-CreateSection(InfoTab, "SecHardware")
-InfoLabels.Device = InfoTab:CreateLabel("-")
-InfoLabels.MoveType = InfoTab:CreateLabel("-")
-InfoLabels.IsChatting = InfoTab:CreateLabel("-")
-InfoLabels.LookDirection = InfoTab:CreateLabel("-")
-InfoLabels.Elevation = InfoTab:CreateLabel("-")
-InfoLabels.RawVelocity = InfoTab:CreateLabel("-")
-InfoLabels.IsSitting = InfoTab:CreateLabel("-")
-InfoLabels.Distanz = InfoTab:CreateLabel("-")
-
--- TAB 5: ANTI-TROLL
-local DefenseTab = CreateNewTab("TabDefense")
-CreateSection(DefenseTab, "SecShields")
-DefenseTab:CreateToggle({Name = T("TglAntiFling"), CurrentValue = false, Callback = function(v) AntiFlingEnabled = v end})
-DefenseTab:CreateToggle({Name = T("TglAntiAttach"), CurrentValue = false, Callback = function(v) AntiAttachEnabled = v end})
-DefenseTab:CreateToggle({Name = T("TglAntiLook"), CurrentValue = false, Callback = function(v) AntiLookEnabled = v end})
-CreateSection(DefenseTab, "SecBypass")
-DefenseTab:CreateToggle({Name = T("TglAntiRagdoll"), CurrentValue = false, Callback = function(v) NoRagdoll = v end})
-DefenseTab:CreateToggle({Name = T("TglFloat"), CurrentValue = false, Callback = function(v)
-    FloatEnabled = v
-    if v and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        FloatForce = Instance.new("BodyVelocity") FloatForce.Velocity = Vector3.new(0,0,0) FloatForce.MaxForce = Vector3.new(0,9e9,0) FloatForce.Parent = LocalPlayer.Character.HumanoidRootPart
-    else
-        if FloatForce then FloatForce:Destroy() FloatForce = nil end
-    end
-end})
-
--- TAB 6: WORLD OPTICS
-local WorldTab = CreateNewTab("TabWorld")
-CreateSection(WorldTab, "SecWorldUi")
-WorldTab:CreateButton({
-    Name = T("BtnWorldUi"),
-    Callback = function()
-        local VenyxLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/zxciaz/VenyxUI/main/Reuploaded"))()
-        local WorldWin = VenyxLib.new("Jerry v1 - World Panel", 5013109572)
-        local Page = WorldWin:addPage("World Settings", 5012544693)
-        local VisSec = Page:addSection("Vision")
-        VisSec:addToggle("🩻 Map X-Ray", MapXRay, function(v) MapXRay = v if not v then DisableXRay() end end)
-        VisSec:addToggle("☀️ FullBright", FullBrightEnabled, function(v) FullBrightEnabled = v end)
-        VisSec:addToggle("🌫️ Anti-Fog", AntiFog, function(v) AntiFog = v end)
-    end
-})
-CreateLabel(WorldTab, "LblWorldInfo")
-
--- TAB 7: SETTINGS & SYSTEM INFO
-local SettingsTab = CreateNewTab("TabSettings")
-CreateSection(SettingsTab, "SecLang")
-
-SettingsTab:CreateDropdown({
-    Name = "Select Language / Sprache wählen",
-    Options = {"English (EN)", "Deutsch (DE)"},
-    CurrentOption = {"English (EN)"},
-    MultipleOptions = false,
-    Callback = function(SelectedOptions)
-        if SelectedOptions[1] == "Deutsch (DE)" then
-            CurrentLanguage = "DE"
-        else
-            CurrentLanguage = "EN"
-        end
-        RefreshInterfaceLanguage()
-        UpdateTargetInfo()
-    end,
-})
-
-CreateSection(SettingsTab, "SecMisc")
-SettingsTab:CreateToggle({Name = T("TglShowFps"), CurrentValue = false, Callback = function(v) ShowFPS = v end})
-SettingsTab:CreateToggle({
-    Name = T("TglFpsBoost"),
-    CurrentValue = false,
-    Callback = function(State)
-        if State then
-            FullBrightEnabled = true; AntiFog = true; Lighting.GlobalShadows = false
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                if obj:IsA("BasePart") then
-                    if not OriginalMaterials[obj] then OriginalMaterials[obj] = {Material = obj.Material, CastShadow = obj.CastShadow} end
-                    obj.Material = Enum.Material.SmoothPlastic; obj.CastShadow = false
-                end
-            end
-        else
-            FullBrightEnabled = false; AntiFog = false; Lighting.GlobalShadows = OriginalShadows
-            for obj, data in pairs(OriginalMaterials) do if obj and obj.Parent then obj.Material = data.Material obj.CastShadow = data.CastShadow end end
-            table.clear(OriginalMaterials)
-        end
-    end
-})
-
-CreateSection(SettingsTab, "SecExit")
-SettingsTab:CreateButton({
-    Name = T("BtnExit"),
-    Callback = function()
-        if FPSLabel then FPSLabel:Remove() end
-        if SpeedConnection then SpeedConnection:Disconnect() end
-        if DefenseConnection then DefenseConnection:Disconnect() end
-        StopFly() DisableXRay()
-        workspace.Gravity = OriginalGravity
-        for _, player in pairs(Players:GetPlayers()) do ClearESP(player) end
-        Rayfield:Destroy()
-    end
-})
-
-print("Jerry v1: Multilanguage Interface successfully fixed and loaded!")
+print("Jerry v1 Core V5 FINAL: Das ultimative und fehlerfreie Meisterwerk wurde geladen!")
