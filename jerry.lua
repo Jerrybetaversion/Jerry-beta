@@ -1,6 +1,6 @@
 -- =============================================
---      JERRY V1 - THE ULTIMATE GOD MODE SUPREME
---          (FINAL COMPILATION - UNMATCHED EDITION)
+--      JERRY V1 Beta
+--          
 -- =============================================
 
 local Success, Rayfield = pcall(function()
@@ -14,8 +14,8 @@ end
 
 local Window = Rayfield:CreateWindow({
     Name = "Jerry v1 | Ultimate God Mode Edition",
-    LoadingTitle = "Jerry v1 Mega Loader",
-    LoadingSubtitle = "God Mode Supreme von NicoNussbaum",
+    LoadingTitle = "Jerry v1 beta",
+    LoadingSubtitle = "By Jerry ",
     ConfigurationSaving = { Enabled = false },
     KeySystem = false,
     Size = UDim2.new(0, 850, 0, 520)
@@ -640,4 +640,4 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-print("Jerry v1 Core V5 FINAL: Das ultimative und fehlerfreie Meisterwerk wurde geladen!")
+print("Jerry v1: Das ultimative und fehlerfreie Meisterwerk wurde geladen!")
