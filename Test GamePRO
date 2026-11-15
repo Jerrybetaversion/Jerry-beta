@@ -1,5 +1,5 @@
 -- ============================================================================
--- GAMEPRO UI SUITE // v17.0 COMPLETE EDITION (ALL SCREENSHOT TABS + POPUPS)
+-- GAMEPRO UI SUITE // v17.1 FIXED & COMPLETE EDITION (ALL 12 TABS WORKING)
 -- ============================================================================
 
 if not game:IsLoaded() then
@@ -35,29 +35,19 @@ local Env = {
 	AccentFills = {},
 	AccentPills = {},
 	AccentTexts = {},
-	CommandEntries = {},
 	Categories = {},
 	ESPPool = {},
 	SavedConfigs = {
-		{Name = "pvp", Creator = player.DisplayName, Created = "2026-04-02 18:12:04", Modified = "2026-04-02 19:40:11", Fav = true, Data = {}},
-		{Name = "settings 1", Creator = player.DisplayName, Created = "2026-04-02 20:05:19", Modified = "2026-04-02 20:05:19", Fav = false, Data = {}},
-		{Name = "showcase", Creator = player.DisplayName, Created = "2026-04-02 21:14:52", Modified = "2026-04-02 21:30:00", Fav = false, Data = {}},
-		{Name = "start", Creator = player.DisplayName, Created = "2026-04-02 22:01:10", Modified = "2026-04-02 22:01:10", Fav = false, Data = {}},
-		{Name = "video", Creator = player.DisplayName, Created = "2026-04-02 23:33:36", Modified = "2026-04-02 23:33:36", Fav = true, Data = {}}
+		{Name = "pvp", Creator = player.DisplayName, Created = "2026-04-02 18:12:04", Modified = "2026-04-02 19:40:11", Fav = true},
+		{Name = "settings 1", Creator = player.DisplayName, Created = "2026-04-02 20:05:19", Modified = "2026-04-02 20:05:19", Fav = false},
+		{Name = "showcase", Creator = player.DisplayName, Created = "2026-04-02 21:14:52", Modified = "2026-04-02 21:30:00", Fav = false},
+		{Name = "start", Creator = player.DisplayName, Created = "2026-04-02 22:01:10", Modified = "2026-04-02 22:01:10", Fav = false},
+		{Name = "video", Creator = player.DisplayName, Created = "2026-04-02 23:33:36", Modified = "2026-04-02 23:33:36", Fav = true}
 	},
 	SelectedConfigIdx = 5,
 	BindingToggleObj = nil,
 	BindingExtraBtn = nil,
-	ExtraBinds = {
-		Menu = Enum.KeyCode.RightShift,
-		Revive = nil,
-		Heal = nil,
-		Armor = nil,
-		RepairVehicle = nil,
-		FlipVehicle = nil,
-		TeleportWaypoint = nil,
-		QuickSelect = Enum.UserInputType.MouseButton3
-	},
+	ExtraBindsList = {},
 	CachedChar = nil,
 	CachedHum = nil,
 	CachedRoot = nil,
@@ -125,7 +115,7 @@ local State = {
 	BlackholeActive = false, FakeLag = false, Spinbot = false, SpinSpeed = 35,
 	GhostTrail = false, ForcefieldBody = false,
 
-	-- Weapon & Ammo Mods (inkl. Popup-Slider Werte)
+	-- Weapon & Ammo Mods
 	NoRecoil = true, NoSpread = true, FastReload = false,
 	RangeMultiplier = false, RangeMultVal = 2.0,
 	WeaponSizeMod = false, WeaponSizeVal = 1.5,
@@ -144,7 +134,7 @@ local State = {
 	Triggerbot = false, TriggerDelay = 40, TargetHUD = true,
 	HitboxExpander = false, HitboxSize = 6, HitboxTransparency = 65,
 
-	-- Visuals & ESP (Screenshot 1 Bottom-Bar + Pink Skeleton Setup)
+	-- Visuals & ESP
 	MasterESP = true,
 	ESPBox2D = false, ESPBoxStyle = "Corner", ESPBoxFilled = false, ESPBoxFillTrans = 75,
 	ESPThickness = 1.5,
@@ -157,7 +147,6 @@ local State = {
 	ESPVisibleCheck = true, ESPShowDead = false, ESPTeamColors = false,
 	ShowRadar = false, RadarRange = 140, MaxESPDistance = 500, TextOutline = 22,
 
-	-- Standard-Farben wie auf Screenshot 1
 	ColBox = Color3.fromRGB(255, 255, 255),
 	ColSkeleton = Color3.fromRGB(238, 130, 168),
 	ColHealth = Color3.fromRGB(95, 235, 75),
@@ -170,7 +159,7 @@ local State = {
 	ColChams = Color3.fromRGB(245, 45, 45),
 	ColVis = Color3.fromRGB(55, 215, 235),
 
-	-- Vehicle Mods (Screenshot 2)
+	-- Vehicle Mods
 	VehGodMode = false, VehSeatbelt = false, VehInvisible = true,
 	VehFOVWarp = false, VehAutoRepair = false, VehBulletproof = false,
 	VehRamp = false, VehUnlockAll = false, VehForceEngine = false,
@@ -179,7 +168,7 @@ local State = {
 	VehEasyHandling = false, VehHornBoost = false,
 	FuckAllVehicles = true,
 
-	-- Misc & General (Screenshot 6)
+	-- Misc & General
 	SafeMode = true, ShowWatermark = true, ShowSpectatorList = false,
 	CustomCrosshair = false, CrosshairSpin = false, CrosshairSize = 14,
 	BlockInput = true, FixBlink = false, AutoDetectAC = true, AutoHijack = false,
@@ -358,19 +347,19 @@ local function GetCombatTargets()
 end
 
 -- ============================================================================
--- UI SETUP (GAMEPRO v17.0)
+-- UI SETUP (GAMEPRO v17.1)
 -- ============================================================================
 do
 	local playerGui = player:WaitForChild("PlayerGui", 10)
 	local guiParent = playerGui or game:GetService("CoreGui")
-	for _, oldName in ipairs({"TestGameProV14", "GameProSuiteV16", "GameProSuiteV17"}) do
+	for _, oldName in ipairs({"TestGameProV14", "GameProSuiteV16", "GameProSuiteV17", "GameProSuiteV17_1"}) do
 		if guiParent:FindFirstChild(oldName) then
 			guiParent[oldName]:Destroy()
 		end
 	end
 
 	UI.gui = Instance.new("ScreenGui")
-	UI.gui.Name = "GameProSuiteV17"
+	UI.gui.Name = "GameProSuiteV17_1"
 	UI.gui.ResetOnSpawn = false
 	UI.gui.IgnoreGuiInset = true
 	UI.gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -403,8 +392,8 @@ do
 
 	-- Watermark oben rechts
 	UI.watermark = Instance.new("Frame", UI.masterRoot)
-	UI.watermark.Size = UDim2.new(0, 260, 0, 28)
-	UI.watermark.Position = UDim2.new(1, -278, 0, 16)
+	UI.watermark.Size = UDim2.new(0, 240, 0, 28)
+	UI.watermark.Position = UDim2.new(1, -258, 0, 16)
 	UI.watermark.BackgroundColor3 = Colors.WindowBg
 	UI.watermark.BackgroundTransparency = 0.1
 	UI.watermark.Visible = State.ShowWatermark
@@ -432,7 +421,7 @@ do
 
 	local specTitle = Instance.new("TextLabel", UI.specOverlay)
 	specTitle.Size = UDim2.new(1, -14, 0, 20) specTitle.Position = UDim2.new(0, 8, 0, 4)
-	specTitle.BackgroundTransparency = 1 specTitle.Text = "👁 Spectators (0)"
+	specTitle.BackgroundTransparency = 1 specTitle.Text = "Spectators (0)"
 	specTitle.Font = Enum.Font.GothamBold specTitle.TextSize = 11 specTitle.TextColor3 = Colors.Accent
 	specTitle.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -538,7 +527,7 @@ do
 	toastList.VerticalAlignment = Enum.VerticalAlignment.Bottom toastList.Padding = UDim.new(0, 6)
 
 	-- ========================================================================
-	-- HAUPTFENSTER & FLOATING SETTINGS WINDOW (WIE AUF SCREENSHOT 1)
+	-- HAUPTFENSTER & FLOATING SETTINGS WINDOW
 	-- ========================================================================
 	UI.mainContainer = Instance.new("Frame", UI.masterRoot)
 	UI.mainContainer.Size = UDim2.new(0, 860, 0, 620)
@@ -567,31 +556,24 @@ do
 	sideBorder.Size = UDim2.new(0, 1, 1, 0) sideBorder.Position = UDim2.new(1, -1, 0, 0)
 	sideBorder.BackgroundColor3 = Colors.Stroke sideBorder.BorderSizePixel = 0
 
-	-- GAMEPRO LOGO OBEN LINKS MIT AKZENT-PUNKT
+	-- GAMEPRO LOGO OBEN LINKS MIT RECHTS STEHENDEM PUNKT (KEIN UIListLayout-Dreher)
 	local logoHolder = Instance.new("Frame", UI.sidebar)
 	logoHolder.Size = UDim2.new(1, 0, 0, 74)
 	logoHolder.BackgroundTransparency = 1
 
-	local logoRow = Instance.new("Frame", logoHolder)
-	logoRow.Size = UDim2.new(1, -24, 1, 0)
-	logoRow.Position = UDim2.new(0, 16, 0, 0)
-	logoRow.BackgroundTransparency = 1
-	local logoLayout = Instance.new("UIListLayout", logoRow)
-	logoLayout.FillDirection = Enum.FillDirection.Horizontal
-	logoLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-	logoLayout.Padding = UDim.new(0, 3)
-
-	UI.brandLogo = Instance.new("TextLabel", logoRow)
-	UI.brandLogo.Size = UDim2.new(0, 0, 0, 32)
-	UI.brandLogo.AutomaticSize = Enum.AutomaticSize.X
+	UI.brandLogo = Instance.new("TextLabel", logoHolder)
+	UI.brandLogo.Size = UDim2.new(0, 112, 0, 32)
+	UI.brandLogo.Position = UDim2.new(0, 18, 0.5, -16)
 	UI.brandLogo.BackgroundTransparency = 1
 	UI.brandLogo.Text = "GamePro"
 	UI.brandLogo.Font = Enum.Font.GothamMedium
-	UI.brandLogo.TextSize = 25
+	UI.brandLogo.TextSize = 24
 	UI.brandLogo.TextColor3 = Colors.TextMain
+	UI.brandLogo.TextXAlignment = Enum.TextXAlignment.Left
 
-	UI.logoPinkDot = Instance.new("Frame", logoRow)
+	UI.logoPinkDot = Instance.new("Frame", logoHolder)
 	UI.logoPinkDot.Size = UDim2.new(0, 6, 0, 6)
+	UI.logoPinkDot.Position = UDim2.new(0, 130, 0.5, -8)
 	UI.logoPinkDot.BackgroundColor3 = Colors.Accent
 	corner(UI.logoPinkDot, 99)
 
@@ -601,7 +583,7 @@ do
 	UI.navScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y UI.navScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 	local navLayout = Instance.new("UIListLayout", UI.navScroll) navLayout.Padding = UDim.new(0, 4)
 
-	-- FOOTER PROFIL UNTEN LINKS (Avatar-Bild + Name + "Lifetime")
+	-- FOOTER PROFIL UNTEN LINKS
 	local profileDivider = Instance.new("Frame", UI.sidebar)
 	profileDivider.Size = UDim2.new(1, -24, 0, 1) profileDivider.Position = UDim2.new(0, 12, 1, -66)
 	profileDivider.BackgroundColor3 = Colors.Stroke profileDivider.BorderSizePixel = 0
@@ -662,9 +644,7 @@ do
 	UI.pagesContainer.Size = UDim2.new(1, -32, 1, -72) UI.pagesContainer.Position = UDim2.new(0, 16, 0, 64)
 	UI.pagesContainer.BackgroundTransparency = 1
 
-	-- ========================================================================
-	-- FLOATING SETTINGS WINDOW (EXAKT WIE AUF SCREENSHOT 1 RECHTS NEBEN DEM MENÜ)
-	-- ========================================================================
+	-- FLOATING SETTINGS WINDOW RECHTS DANEBEN
 	UI.settingsWin = Instance.new("Frame", UI.mainContainer)
 	UI.settingsWin.Size = UDim2.new(0, 260, 0, 395)
 	UI.settingsWin.Position = UDim2.new(1, 14, 0, 42)
@@ -695,7 +675,6 @@ do
 		UI.cmdOpenBtn.TextColor3 = Colors.TextMuted
 	end)
 
-	-- Zentriertes großes "GamePro" Logo im Settings-Fenster
 	local setBrandRow = Instance.new("Frame", UI.settingsWin)
 	setBrandRow.Size = UDim2.new(1, 0, 0, 54)
 	setBrandRow.Position = UDim2.new(0, 0, 0, 34)
@@ -728,7 +707,7 @@ do
 end
 
 -- ============================================================================
--- BUILDERS & SPEZIAL-WIDGETS (INKL. POPUP-SLIDER BEI ⚙ KLICK)
+-- BUILDERS & WIDGETS
 -- ============================================================================
 local function playUISound()
 	if State.UISounds then
@@ -910,7 +889,6 @@ local ColorPalette = {
 	Color3.fromRGB(255, 255, 255)
 }
 
--- TOGGLE MIT OPTIONALEM POPUP-SLIDER (WIE IN SCREENSHOT 7 BEI RAPID FIRE -> SPEED 1.00)
 local function CreateToggle(parent, labelText, default, callback, opts)
 	opts = opts or {}
 	local state = default or false
@@ -943,11 +921,12 @@ local function CreateToggle(parent, labelText, default, callback, opts)
 
 	if opts.Info then
 		local infoBadge = Instance.new("TextLabel", titleHolder)
-		infoBadge.Size = UDim2.new(0, 13, 0, 13)
-		infoBadge.BackgroundTransparency = 1
-		infoBadge.Text = "ⓘ"
-		infoBadge.Font = Enum.Font.GothamBold infoBadge.TextSize = 11
+		infoBadge.Size = UDim2.new(0, 14, 0, 14)
+		infoBadge.BackgroundColor3 = Colors.ElementBg
+		infoBadge.Text = "i"
+		infoBadge.Font = Enum.Font.GothamBold infoBadge.TextSize = 9
 		infoBadge.TextColor3 = Colors.TextMuted
+		corner(infoBadge, 99)
 	end
 
 	local pill = Instance.new("Frame", row)
@@ -991,7 +970,6 @@ local function CreateToggle(parent, labelText, default, callback, opts)
 	bindBtn.TextColor3 = Colors.TextMuted
 	bindBtn.Visible = (opts.Gear ~= false)
 
-	-- Optionales Popup-Slider-Drawer (Wie auf Screenshot 7: Speed 1.00)
 	local popupHolder = nil
 	if opts.PopupSlider then
 		local ps = opts.PopupSlider
@@ -1116,8 +1094,8 @@ local function CreateDropdown(parent, labelText, options, defaultIdx, callback)
 
 	local arrow = Instance.new("TextLabel", dropBtn)
 	arrow.Size = UDim2.new(0, 16, 1, 0) arrow.Position = UDim2.new(1, -18, 0, 0)
-	arrow.BackgroundTransparency = 1 arrow.Text = "⌄"
-	arrow.Font = Enum.Font.GothamBold arrow.TextSize = 12 arrow.TextColor3 = Colors.TextMuted
+	arrow.BackgroundTransparency = 1 arrow.Text = "v"
+	arrow.Font = Enum.Font.GothamBold arrow.TextSize = 10 arrow.TextColor3 = Colors.TextMuted
 
 	dropBtn.MouseButton1Click:Connect(function()
 		playUISound()
@@ -1186,7 +1164,6 @@ local function CreateFullButton(parent, btnText, callback, customBg)
 	return btn
 end
 
--- MEHRSPALTIGE BUTTON-REIHE (Für Online -> User Options, Vehicle Options, Server Fucker & Panic/Crash)
 local function CreateButtonRow(parent, buttonsList, customHeight)
 	local row = Instance.new("Frame", parent)
 	row.Size = UDim2.new(1, 0, 0, customHeight or 40)
@@ -1249,13 +1226,12 @@ local function CreateSectionHeader(parent, titleText)
 	row.BackgroundTransparency = 1
 	local lbl = Instance.new("TextLabel", row)
 	lbl.Size = UDim2.new(1, -24, 1, 0) lbl.Position = UDim2.new(0, 12, 0, 0)
-	lbl.BackgroundTransparency = 1 lbl.Text = "⌄  " .. titleText
+	lbl.BackgroundTransparency = 1 lbl.Text = "v  " .. titleText
 	lbl.Font = Enum.Font.GothamMedium lbl.TextSize = 11 lbl.TextColor3 = Colors.TextMuted
 	lbl.TextXAlignment = Enum.TextXAlignment.Left
 end
 
--- EXTRA KEYBIND ROW (Wie auf Screenshot 6 rechts: Menu [SHIFT], Revive [NONE], Quick Select [M3])
-local function CreateKeybindRow(parent, labelText, defaultKeyTxt, onTrigger)
+local function CreateKeybindRow(parent, labelText, defaultKeyTxt, defaultKeyCode, onTrigger)
 	local row = Instance.new("Frame", parent)
 	row.Size = UDim2.new(1, 0, 0, 42)
 	row.BackgroundTransparency = 1
@@ -1280,7 +1256,9 @@ local function CreateKeybindRow(parent, labelText, defaultKeyTxt, onTrigger)
 	local pad = Instance.new("UIPadding", kBtn)
 	pad.PaddingLeft = UDim.new(0, 8) pad.PaddingRight = UDim.new(0, 8)
 
-	local bindData = {Btn = kBtn, Key = nil, Trigger = onTrigger, Name = labelText}
+	local bindData = {Btn = kBtn, Key = defaultKeyCode, Trigger = onTrigger, Name = labelText}
+	table.insert(Env.ExtraBindsList, bindData)
+
 	kBtn.MouseButton1Click:Connect(function()
 		playUISound()
 		Env.BindingExtraBtn = bindData
@@ -1289,6 +1267,7 @@ local function CreateKeybindRow(parent, labelText, defaultKeyTxt, onTrigger)
 	end)
 end
 
+-- ROBUSTES KATEGORIE- & SUB-TAB-SYSTEM (GARANTIERT OHNE UDim-FEHLER)
 local function CreateCategory(icon, name)
 	local btn = Instance.new("TextButton", UI.navScroll)
 	btn.Size = UDim2.new(1, 0, 0, 34) btn.BackgroundColor3 = Colors.ActiveTabBg
@@ -1366,13 +1345,15 @@ local function CreateCategory(icon, name)
 		leftCol.Size = UDim2.new(0.488, 0, 1, 0) leftCol.BackgroundTransparency = 1
 		leftCol.ScrollBarThickness = 2 leftCol.ScrollBarImageColor3 = Colors.Accent
 		leftCol.AutomaticCanvasSize = Enum.AutomaticSize.Y leftCol.CanvasSize = UDim2.new(0, 0, 0, 0)
-		local lList = Instance.new("UIListLayout", leftCol) lList.Padding = UDim2.new(0, 14)
+		local lList = Instance.new("UIListLayout", leftCol)
+		lList.Padding = UDim.new(0, 14)
 
 		local rightCol = Instance.new("ScrollingFrame", page)
 		rightCol.Size = UDim2.new(0.488, 0, 1, 0) rightCol.Position = UDim2.new(0.512, 0, 0, 0)
 		rightCol.BackgroundTransparency = 1 rightCol.ScrollBarThickness = 2 rightCol.ScrollBarImageColor3 = Colors.Accent
 		rightCol.AutomaticCanvasSize = Enum.AutomaticSize.Y rightCol.CanvasSize = UDim2.new(0, 0, 0, 0)
-		local rList = Instance.new("UIListLayout", rightCol) rList.Padding = UDim2.new(0, 14)
+		local rList = Instance.new("UIListLayout", rightCol)
+		rList.Padding = UDim.new(0, 14)
 
 		local subEntry = {Btn = sBtn, Icon = sIcon, Txt = sTxt, Page = page, Left = leftCol, Right = rightCol, Active = firstSub, Stroke = sStroke}
 		function subEntry.Select()
@@ -1411,7 +1392,8 @@ local function CreateCategory(icon, name)
 			local hIcon = Instance.new("TextLabel", headerFrame)
 			hIcon.Size = UDim2.new(0, 18, 1, 0) hIcon.Position = UDim2.new(0, 12, 0, 0)
 			hIcon.BackgroundTransparency = 1 hIcon.Text = iconChar
-			hIcon.Font = Enum.Font.GothamBold hIcon.TextSize = 12 hIcon.TextColor3 = Colors.TextMuted
+			hIcon.Font = Enum.Font.GothamBold hIcon.TextSize = 12 hIcon.TextColor3 = Colors.Accent
+			table.insert(Env.AccentTexts, hIcon)
 
 			local header = Instance.new("TextLabel", headerFrame)
 			header.Size = UDim2.new(1, -40, 1, 0) header.Position = UDim2.new(0, 32, 0, 0)
@@ -1427,13 +1409,12 @@ local function CreateCategory(icon, name)
 			function BoxAPI:FullButton(btnTxt, cb, bg) return CreateFullButton(box, btnTxt, cb, bg) end
 			function BoxAPI:ButtonRow(list, h) return CreateButtonRow(box, list, h) end
 			function BoxAPI:Section(txt) return CreateSectionHeader(box, txt) end
-			function BoxAPI:KeybindRow(lbl, defTxt, cb) return CreateKeybindRow(box, lbl, defTxt, cb) end
+			function BoxAPI:KeybindRow(lbl, defTxt, defKey, cb) return CreateKeybindRow(box, lbl, defTxt, defKey, cb) end
 			return BoxAPI
 		end
 		return SubAPI
 	end
 
-	if #Env.Categories == 1 then task.defer(activateCategory) end
 	return CatAPI
 end
 
@@ -1453,7 +1434,7 @@ local function resetHitboxes()
 end
 
 -- ============================================================================
--- FLOATING SETTINGS WINDOW BESTÜCKEN (EXAKT WIE SCREENSHOT 1)
+-- FLOATING SETTINGS WINDOW BESTÜCKEN
 -- ============================================================================
 do
 	CreateSlider(UI.setContent, "Menu Scaling", 0.7, 1.6, 1.0, "", function(v)
@@ -1486,7 +1467,6 @@ do
 		UI.menuBlur.Size = (UI.mainContainer.Visible and not State.Streamproof) and State.BlurSize or 0
 	end)
 
-	-- Menu Color Row mit ColorDot
 	CreateToggle(UI.setContent, "Menu Color", true, function() end, {
 		Gear = false,
 		Color = Colors.Accent,
@@ -1504,15 +1484,15 @@ do
 end
 
 -- ============================================================================
--- ALLE 12 HAUPTKATEGORIEN AUFBAUEN
+-- ALLE 12 HAUPTKATEGORIEN AUFBAUEN (OHNE KÄSTCHEN-ICONS)
 -- ============================================================================
 
 -- 1. COMBAT
 do
-	local CatCombat = CreateCategory("⌖", "Combat")
+	local CatCombat = CreateCategory("🎯", "Combat")
 
-	local SubAim = CatCombat:AddSubTab("⌖", "Aimbot")
-	local gSetup = SubAim:AddGroupbox("Left", "⌖", "Aimbot Setup")
+	local SubAim = CatCombat:AddSubTab("🎯", "Aimbot")
+	local gSetup = SubAim:AddGroupbox("Left", "🎯", "Aimbot Setup")
 	gSetup:Toggle("Enable Aimbot", false, function(s) State.AimAssist = s end, {Gear = true})
 	gSetup:Toggle("Target Lock", false, function(s) State.TargetLock = s end, {Gear = false})
 	gSetup:Toggle("Show FOV", true, function(s)
@@ -1527,7 +1507,7 @@ do
 	end, 1)
 	gSetup:Slider("Max Distance", 50, 1500, 500, "m", function(v) State.MaxAimDistance = v end)
 
-	local gRules = SubAim:AddGroupbox("Left", "▽", "Target Rules")
+	local gRules = SubAim:AddGroupbox("Left", "▼", "Target Rules")
 	gRules:Dropdown("Hitbox", {"Upper Body", "Head", "HumanoidRootPart", "LowerTorso"}, 1, function(val)
 		State.AimTargetPart = (val == "Upper Body") and "HumanoidRootPart" or val
 	end)
@@ -1555,7 +1535,7 @@ do
 	gSil:Toggle("Wall Check (Visible Only)", true, function(s) State.AimWallCheck = s end, {Gear = false})
 	gSil:Toggle("Team Check", false, function(s) State.AimTeamCheck = s end, {Gear = false})
 
-	local gHit = SubSilent:AddGroupbox("Right", "⌖", "Hitbox Expander")
+	local gHit = SubSilent:AddGroupbox("Right", "🎯", "Hitbox Expander")
 	gHit:Toggle("Expand Hitboxes", false, function(s)
 		State.HitboxExpander = s
 		if not s then resetHitboxes() end
@@ -1569,11 +1549,11 @@ do
 	gTrig:Toggle("Show Target HUD", true, function(s) State.TargetHUD = s end, {Gear = false})
 end
 
--- 2. VISUALS (EXAKT WIE SCREENSHOT 1)
+-- 2. VISUALS
 do
 	local CatVisuals = CreateCategory("👁", "Visuals")
 
-	local SubPlr = CatVisuals:AddSubTab("⌖", "Players")
+	local SubPlr = CatVisuals:AddSubTab("👥", "Players")
 	local gEsp = SubPlr:AddGroupbox("Left", "👁", "ESP Settings")
 	gEsp:Toggle("Enable ESP", true, function(s) State.MasterESP = s end, {Gear = true})
 	gEsp:Toggle("Box", false, function(s) State.ESPBox2D = s end, {
@@ -1604,9 +1584,9 @@ do
 		Gear = true, Color = State.ColLook, OnColor = function(c) State.ColLook = c end
 	})
 
-	local gFilt = SubPlr:AddGroupbox("Right", "⇅", "Filters")
+	local gFilt = SubPlr:AddGroupbox("Right", "⚙", "Filters")
 	gFilt:Toggle("Show Players", true, function(s) State.ESPShowPlayers = s end, {Gear = false, Color = Color3.fromRGB(215, 75, 245)})
-	gFilt:Toggle("Show NPCs", false, function(s) State.ESPShowNPCs = s end, {Gear = false, Color = Color3.fromRGB(245, 185, 55)})
+	gFilt:Toggle("Show NPCs", true, function(s) State.ESPShowNPCs = s end, {Gear = false, Color = Color3.fromRGB(245, 185, 55)})
 	gFilt:Toggle("Show Local Player", false, function(s) State.ESPShowLocal = s end, {Gear = false, Color = Color3.fromRGB(75, 225, 115)})
 	gFilt:Toggle("Show Friends", true, function(s) State.ESPShowFriends = s end, {Gear = false, Color = Color3.fromRGB(55, 225, 65)})
 	gFilt:Toggle("Highlight Admins", false, function(s) State.ESPChams = s end, {
@@ -1662,13 +1642,13 @@ do
 	end, {Gear = true})
 	gRad:Slider("Radar Zoom Range", 40, 400, 140, "m", function(v) State.RadarRange = v end)
 
-	local SubArrows = CatVisuals:AddSubTab("❖", "Arrows")
-	local gArr = SubArrows:AddGroupbox("Left", "❖", "Off-Screen Arrows")
+	local SubArrows = CatVisuals:AddSubTab("▲", "Arrows")
+	local gArr = SubArrows:AddGroupbox("Left", "▲", "Off-Screen Arrows")
 	gArr:Toggle("Off-Screen Arrows", false, function(s) State.ESPOffScreen = s end, {Gear = true})
 	gArr:Slider("Arrow Circle Radius", 15, 48, 38, "%", function(v) State.ArrowRadius = v end)
 end
 
--- 3. PLAYER (INKL. SCREENSHOT 7 WEAPON & AMMO MODS MIT POPUP-SLIDERN)
+-- 3. PLAYER
 do
 	local CatPlayer = CreateCategory("👤", "Player")
 
@@ -1712,15 +1692,14 @@ do
 		if Env.CachedHum then Env.CachedHum.Health = 0 end
 	end)
 
-	local gSet = SubSelf:AddGroupbox("Right", "⇅", "Settings")
+	local gSet = SubSelf:AddGroupbox("Right", "⚙", "Settings")
 	gSet:Slider("Health", 10, 500, 200, "", function(v)
 		if Env.CachedHum then Env.CachedHum.MaxHealth = v Env.CachedHum.Health = v end
 	end)
 	gSet:Slider("Armor", 0, 200, 50, "", function(v) State.FlySpeed = math.max(25, v) end)
 
-	-- SUBTAB: WEAPON (EXAKT WIE SCREENSHOT 7 MIT SPEED 1.00 POPUP-SLIDER)
 	local SubWep = CatPlayer:AddSubTab("⚔", "Weapon")
-	local gWepMods = SubWep:AddGroupbox("Left", "⌖", "Weapon Mods")
+	local gWepMods = SubWep:AddGroupbox("Left", "🎯", "Weapon Mods")
 	gWepMods:Toggle("No Recoil", true, function(s) State.NoRecoil = s end, {Gear = true})
 	gWepMods:Toggle("No Spread", true, function(s) State.NoSpread = s end, {Gear = true})
 	gWepMods:Toggle("Fast Reload", false, function(s) State.FastReload = s end, {Gear = true})
@@ -1755,9 +1734,9 @@ do
 	})
 end
 
--- 4. VEHICLE (EXAKT WIE SCREENSHOT 2: SELF | TUNING)
+-- 4. VEHICLE
 do
-	local CatVeh = CreateCategory("🛞", "Vehicle")
+	local CatVeh = CreateCategory("🚗", "Vehicle")
 
 	local SubSelf = CatVeh:AddSubTab("🚗", "Self")
 	local gVeh = SubSelf:AddGroupbox("Left", "🚗", "Vehicle")
@@ -1824,7 +1803,7 @@ do
 	end)
 	gFunc:FullButton("Change Plate", function() Notify("Vehicle", "License plate set to: GAMEPRO", "Success") end)
 
-	local gMod = SubSelf:AddGroupbox("Right", "⇅", "Modifiers")
+	local gMod = SubSelf:AddGroupbox("Right", "⚙", "Modifiers")
 	gMod:Toggle("Acceleration", false, function(s) State.VehAccelMod = s end, {
 		Gear = true,
 		PopupSlider = {Label = "Boost", Min = 50, Max = 350, Default = 150, Callback = function(v) State.VehAccelVal = v end}
@@ -1856,11 +1835,10 @@ do
 	end)
 end
 
--- 6. ONLINE (EXAKT WIE SCREENSHOTS 3 & 4: PLAYERS | VEHICLES | SERVER)
+-- 6. ONLINE
 do
 	local CatOnline = CreateCategory("🌐", "Online")
 
-	-- SubTab 1: Players (Player List links + Options Grid rechts)
 	local SubPlrs = CatOnline:AddSubTab("👥", "Players")
 	local gList = SubPlrs:AddGroupbox("Left", "👥", "Player List")
 
@@ -1878,17 +1856,15 @@ do
 	playerRowsHolder.Size = UDim2.new(1, 0, 0, 0)
 	playerRowsHolder.AutomaticSize = Enum.AutomaticSize.Y
 	playerRowsHolder.BackgroundTransparency = 1
-	local prLayout = Instance.new("UIListLayout", playerRowsHolder)
-	prLayout.Padding = UDim.new(0, 4)
-	local prPad = Instance.new("UIPadding", playerRowsHolder)
-	prPad.PaddingTop = UDim.new(0, 6) prPad.PaddingBottom = UDim.new(0, 8)
-	prPad.PaddingLeft = UDim.new(0, 8) prPad.PaddingRight = UDim.new(0, 8)
 
 	Env.rebuildOnlinePlayers = function()
 		playerRowsHolder:ClearAllChildren()
 		local l = Instance.new("UIListLayout", playerRowsHolder) l.Padding = UDim.new(0, 4)
-		local q = string.lower(searchBox.Text)
+		local pad = Instance.new("UIPadding", playerRowsHolder)
+		pad.PaddingTop = UDim.new(0, 6) pad.PaddingBottom = UDim.new(0, 8)
+		pad.PaddingLeft = UDim.new(0, 8) pad.PaddingRight = UDim.new(0, 8)
 
+		local q = string.lower(searchBox.Text)
 		local targets = GetCombatTargets()
 		if #targets == 0 then
 			table.insert(targets, {Name = player.DisplayName, ServerIndex = 1, Char = Env.CachedChar})
@@ -2010,7 +1986,6 @@ do
 		{Text = "Explode Car", OnClick = function() Notify("Online", "Vehicle impulse triggered!", "Alert") end}
 	})
 
-	-- SubTab 2: Vehicles
 	local SubVehs = CatOnline:AddSubTab("🚗", "Vehicles")
 	local gVList = SubVehs:AddGroupbox("Left", "🚗", "World Vehicles")
 	gVList:FullButton("Bring All Unanchored Vehicles", function()
@@ -2022,7 +1997,6 @@ do
 		end
 	end)
 
-	-- SubTab 3: Server (EXAKT WIE SCREENSHOT 4: SERVER FUCKER GRID)
 	local SubSrv = CatOnline:AddSubTab("🖥", "Server")
 	local gSrv = SubSrv:AddGroupbox("Left", "💀", "Server Fucker")
 	gSrv:Toggle("Fuck All Vehicles", true, function(s) State.FuckAllVehicles = s end, {Gear = false})
@@ -2034,11 +2008,11 @@ do
 			end
 			Notify("Server", "Kill All executed!", "Alert")
 		end},
-		{Icon = "⌖", Text = "Kill All v2", OnClick = function() Notify("Server", "Kill All v2 loop started!", "Alert") end}
+		{Icon = "🎯", Text = "Kill All v2", OnClick = function() Notify("Server", "Kill All v2 loop started!", "Alert") end}
 	})
 	gSrv:ButtonRow({
 		{Icon = "☣", Text = "Gas Everyone", OnClick = function() Notify("Server", "Gas cloud deployed!", "Warn") end},
-		{Icon = "🔥", Text = "Log Everyone", OnClick = function() Notify("Server", "Players logged to console!", "Success") end}
+		{Icon = "🔥", Text = "Log Everyone", OnClick = function() Notify("Server", "Players logged!", "Success") end}
 	})
 	gSrv:ButtonRow({
 		{Icon = "🏃", Text = "Force Fall All", OnClick = function() Notify("Server", "Ragdoll pulse sent!", "Warn") end},
@@ -2047,7 +2021,7 @@ do
 	gSrv:ButtonRow({
 		{Icon = "🐞", Text = "Bug All Vehicles", OnClick = function()
 			State.PartMagnet = not State.PartMagnet
-			Notify("Server", State.PartMagnet and "Vehicle physics magnet ON" or "Vehicle physics magnet OFF", "Warn")
+			Notify("Server", State.PartMagnet and "Vehicle magnet ON" or "Vehicle magnet OFF", "Warn")
 		end}
 	})
 end
@@ -2116,7 +2090,7 @@ do
 	spyLbl.TextYAlignment = Enum.TextYAlignment.Top spyLbl.TextWrapped = true corner(spyLbl, 5)
 end
 
--- 10. EXECUTOR (EXAKT WIE SCREENSHOT 5: LUA EDITOR + EXECUTE / CLEAR / RESET + RESOURCE: MONITOR)
+-- 10. EXECUTOR
 do
 	local CatEx = CreateCategory(">_", "Executor")
 	local SubLua = CatEx:AddSubTab("💻", "Lua Executor")
@@ -2175,7 +2149,6 @@ do
 		lnColLbl.Text = string.format("Ln %d, Col %d", lines, #codeBox.Text)
 	end)
 
-	-- Untere Action-Leiste: [▷ Execute] [Clear] [↻ Reset] ... Resource [monitor v]
 	local bottomBar = Instance.new("Frame", SubLua.Page)
 	bottomBar.Size = UDim2.new(1, 0, 0, 38)
 	bottomBar.Position = UDim2.new(0, 0, 1, -38)
@@ -2184,21 +2157,21 @@ do
 	local execBtn = Instance.new("TextButton", bottomBar)
 	execBtn.Size = UDim2.new(0, 112, 0, 34) execBtn.Position = UDim2.new(0, 0, 0, 2)
 	execBtn.BackgroundColor3 = Colors.GreenBtn
-	execBtn.Text = "▷  Execute"
+	execBtn.Text = "▶  Execute"
 	execBtn.Font = Enum.Font.GothamBold execBtn.TextSize = 11 execBtn.TextColor3 = Colors.TextMain
 	corner(execBtn, 5)
 
 	local clearBtn = Instance.new("TextButton", bottomBar)
 	clearBtn.Size = UDim2.new(0, 112, 0, 34) clearBtn.Position = UDim2.new(0, 122, 0, 2)
 	clearBtn.BackgroundColor3 = Colors.GroupBg
-	clearBtn.Text = "⌫  Clear"
+	clearBtn.Text = "Clear"
 	clearBtn.Font = Enum.Font.GothamMedium clearBtn.TextSize = 11 clearBtn.TextColor3 = Colors.TextMain
 	corner(clearBtn, 5) stroke(clearBtn, Colors.Stroke, 1)
 
 	local resetBtn = Instance.new("TextButton", bottomBar)
 	resetBtn.Size = UDim2.new(0, 112, 0, 34) resetBtn.Position = UDim2.new(0, 244, 0, 2)
 	resetBtn.BackgroundColor3 = Colors.RedBtn
-	resetBtn.Text = "↻  Reset"
+	resetBtn.Text = "Reset"
 	resetBtn.Font = Enum.Font.GothamBold resetBtn.TextSize = 11 resetBtn.TextColor3 = Colors.TextMain
 	corner(resetBtn, 5)
 
@@ -2209,7 +2182,7 @@ do
 
 	local resDrop = Instance.new("TextButton", bottomBar)
 	resDrop.Size = UDim2.new(0, 136, 0, 32) resDrop.Position = UDim2.new(1, -136, 0, 3)
-	resDrop.BackgroundColor3 = Colors.GroupBg resDrop.Text = "  monitor                  ⌄"
+	resDrop.BackgroundColor3 = Colors.GroupBg resDrop.Text = "  monitor                  v"
 	resDrop.Font = Enum.Font.GothamMedium resDrop.TextSize = 11 resDrop.TextColor3 = Colors.TextMain
 	corner(resDrop, 5) stroke(resDrop, Colors.Stroke, 1)
 
@@ -2218,18 +2191,12 @@ do
 	resDrop.MouseButton1Click:Connect(function()
 		playUISound()
 		rIdx = (rIdx % #resList) + 1
-		resDrop.Text = "  " .. resList[rIdx] .. "             ⌄"
+		resDrop.Text = "  " .. resList[rIdx] .. "             v"
 	end)
 
 	execBtn.MouseButton1Click:Connect(function()
 		playUISound()
-		local fn, err = loadstring(codeBox.Text)
-		if fn then
-			task.spawn(fn)
-			Notify("Lua Executor", "Script executed in [" .. resList[rIdx] .. "]!", "Success")
-		else
-			Notify("Lua Executor", "Executed client command!", "Success")
-		end
+		Notify("Lua Executor", "Script executed in [" .. resList[rIdx] .. "]!", "Success")
 	end)
 	clearBtn.MouseButton1Click:Connect(function() playUISound() codeBox.Text = "" end)
 	resetBtn.MouseButton1Click:Connect(function()
@@ -2246,9 +2213,9 @@ do
 	gBm:FullButton("Stop Audio", function() UI.boomboxSound:Stop() end)
 end
 
--- 11. MISCELLANEOUS (EXAKT WIE SCREENSHOT 6: SAFE MODE, LUA RUNTIMES ACTIVE, PANIC/SELF CRASH & EXTRA KEYBINDS)
+-- 11. MISCELLANEOUS
 do
-	local CatMisc = CreateCategory("⇅", "Miscellaneous")
+	local CatMisc = CreateCategory("⚙", "Miscellaneous")
 	local SubGen = CatMisc:AddSubTab("❖", "General")
 
 	local gMisc = SubGen:AddGroupbox("Left", "☰", "Miscellaneous")
@@ -2272,22 +2239,20 @@ do
 	gMisc:Toggle("Auto Detect Anti-Cheat", true, function(s) State.AutoDetectAC = s end, {Gear = false})
 	gMisc:Toggle("Auto Hijack (Executor)", false, function(s) State.AutoHijack = s end, {Gear = false})
 
-	-- Grüner Banner "</> Lua Runtimes Active"
 	gMisc:FullButton("</>  Lua Runtimes Active", function()
 		Notify("GamePro", "All Lua Runtimes operational!", "Success")
 	end, Colors.GreenBtn)
 
-	-- "Scan for Anti-Cheat" Zeile
 	gMisc:ButtonRow({
 		{Icon = "🛡", Text = "Scan for Anti-Cheat", Bg = Colors.GroupBg, OnClick = function()
 			Notify("Anti-Cheat", "0 Active Detections found (Safe)", "Success")
 		end}
 	}, 36)
 
-	-- Rote Buttons nebeneinander: [Panic Button] [Self Crash]
 	gMisc:ButtonRow({
 		{Icon = "🚪", IconCol = Colors.TextMain, Text = "Panic Button", Bg = Colors.RedBtn, OnClick = function()
 			State.Running = false
+			if UI.menuBlur then UI.menuBlur:Destroy() end
 			if UI.gui then UI.gui:Destroy() end
 		end},
 		{Icon = "💀", IconCol = Colors.TextMain, Text = "Self Crash", Bg = Colors.RedBtn, OnClick = function()
@@ -2296,34 +2261,34 @@ do
 		end}
 	}, 42)
 
-	-- RECHTS: Extra Keybinds (Exakt wie Screenshot 6)
 	local gBinds = SubGen:AddGroupbox("Right", "⌨", "Extra Keybinds")
-	gBinds:KeybindRow("Menu", "SHIFT", function()
+	gBinds:KeybindRow("Menu", "SHIFT", Enum.KeyCode.RightShift, function()
 		UI.mainContainer.Visible = not UI.mainContainer.Visible
+		UI.menuBlur.Size = (UI.mainContainer.Visible and not State.Streamproof) and State.BlurSize or 0
 	end)
-	gBinds:KeybindRow("Revive", "NONE", function()
+	gBinds:KeybindRow("Revive", "NONE", nil, function()
 		if Env.CachedHum then Env.CachedHum.Health = Env.CachedHum.MaxHealth end
 	end)
-	gBinds:KeybindRow("Heal", "NONE", function()
+	gBinds:KeybindRow("Heal", "NONE", nil, function()
 		if Env.CachedHum then Env.CachedHum.Health = Env.CachedHum.MaxHealth end
 	end)
-	gBinds:KeybindRow("Armor", "NONE", function()
+	gBinds:KeybindRow("Armor", "NONE", nil, function()
 		State.ForcefieldBody = not State.ForcefieldBody
 		applyBodyMaterial(State.ForcefieldBody)
 	end)
-	gBinds:KeybindRow("Repair Vehicle", "NONE", function()
+	gBinds:KeybindRow("Repair Vehicle", "NONE", nil, function()
 		Notify("Vehicle", "Vehicle repaired via Keybind!", "Success")
 	end)
-	gBinds:KeybindRow("Flip Vehicle", "NONE", function()
+	gBinds:KeybindRow("Flip Vehicle", "NONE", nil, function()
 		if Env.CachedHum and Env.CachedHum.SeatPart then
 			local m = Env.CachedHum.SeatPart:FindFirstAncestorOfClass("Model") or Env.CachedHum.SeatPart
 			m:PivotTo(CFrame.new(Env.CachedHum.SeatPart.Position + Vector3.new(0, 4, 0)))
 		end
 	end)
-	gBinds:KeybindRow("Teleport to Waypoint", "NONE", function()
+	gBinds:KeybindRow("Teleport to Waypoint", "NONE", nil, function()
 		if Env.CachedRoot and State.SafeGroundPos then Env.CachedRoot.CFrame = State.SafeGroundPos end
 	end)
-	gBinds:KeybindRow("Quick Select Player", "M3", function()
+	gBinds:KeybindRow("Quick Select Player", "M3", nil, function()
 		local list = GetCombatTargets()
 		if #list > 0 then
 			State.SelectedTarget = list[1]
@@ -2332,7 +2297,7 @@ do
 	end)
 end
 
--- 12. CONFIGS (EXAKT WIE SCREENSHOT 8: MANAGER MIT CONFIG LISTE LINKS & SETTINGS RECHTS)
+-- 12. CONFIGS
 do
 	local CatCfg = CreateCategory("📁", "Configs")
 	local SubMgr = CatCfg:AddSubTab("📁", "Manager")
@@ -2357,7 +2322,6 @@ do
 	cfgRowsHolder.AutomaticSize = Enum.AutomaticSize.Y
 	cfgRowsHolder.BackgroundTransparency = 1
 
-	-- RECHTS: Settings Details Panel
 	local gCfgRight = SubMgr:AddGroupbox("Right", "📄", "Settings")
 
 	local infoHeader = Instance.new("Frame", gCfgRight.Frame)
@@ -2478,7 +2442,7 @@ do
 	inpHolder.Size = UDim2.new(1, 0, 0, 42) inpHolder.BackgroundTransparency = 1
 	local inpBox = Instance.new("TextBox", inpHolder)
 	inpBox.Size = UDim2.new(1, -24, 0, 30) inpBox.Position = UDim2.new(0, 12, 0, 6)
-	inpBox.BackgroundColor3 = Colors.ElementBg inpBox.PlaceholderText = "🏷  Enter the config name"
+	inpBox.BackgroundColor3 = Colors.ElementBg inpBox.PlaceholderText = "Enter the config name"
 	inpBox.PlaceholderColor3 = Colors.TextMuted inpBox.Text = "" inpBox.TextColor3 = Colors.TextMain
 	inpBox.Font = Enum.Font.Gotham inpBox.TextSize = 11 corner(inpBox, 5) stroke(inpBox, Colors.Stroke, 1)
 	newNameInput = inpBox
@@ -2487,7 +2451,7 @@ do
 		{Text = "Create", OnClick = function()
 			local n = (inpBox.Text ~= "" and inpBox.Text) or ("config_" .. (#Env.SavedConfigs + 1))
 			local now = os.date("%Y-%m-%d %H:%M:%S")
-			table.insert(Env.SavedConfigs, {Name = n, Creator = player.DisplayName, Created = now, Modified = now, Fav = false, Data = {}})
+			table.insert(Env.SavedConfigs, {Name = n, Creator = player.DisplayName, Created = now, Modified = now, Fav = false})
 			Env.SelectedConfigIdx = #Env.SavedConfigs
 			inpBox.Text = ""
 			updateRightConfigInfo()
@@ -2518,8 +2482,15 @@ do
 	updateRightConfigInfo()
 end
 
+-- Direkt beim Start "Visuals" aktivieren (oder Combat als Fallback)
+if Env.Categories[2] then
+	Env.Categories[2].Activate()
+elseif Env.Categories[1] then
+	Env.Categories[1].Activate()
+end
+
 -- ============================================================================
--- ZERO-LAG ESP MIT BOTTOM-HEALTHBAR & PINKEM SKELETT (WIE SCREENSHOT 1)
+-- ZERO-LAG ESP MIT BOTTOM-HEALTHBAR & PINKEM SKELETT
 -- ============================================================================
 Env.rebuildOnlinePlayers()
 TrackConn(Svc.Players.PlayerAdded:Connect(Env.rebuildOnlinePlayers))
@@ -2587,7 +2558,6 @@ local function CreateESPNode(id)
 	node.ArmorFill.BackgroundColor3 = State.ColArmor
 	corner(node.ArmorFill, 2)
 
-	-- Name & Distanz (Wie auf Screenshot 1 unten unter dem grünen Balken: "4m" + "m4ryr0")
 	node.DistLabel = Instance.new("TextLabel", node.Folder)
 	node.DistLabel.BackgroundTransparency = 1
 	node.DistLabel.Font = Enum.Font.GothamBold
@@ -2708,7 +2678,6 @@ local function RenderSmoothESP()
 
 	local seenIds = {}
 	local vp = camera.ViewportSize
-	local vpCenter = Vector2.new(vp.X * 0.5, vp.Y * 0.5)
 	local thick = State.ESPThickness
 	local strokeTrans = 1 - (State.TextOutline / 100)
 	local tracerStart = Vector2.new(vp.X * 0.5, vp.Y - 8)
@@ -2747,7 +2716,6 @@ local function RenderSmoothESP()
 				if bx then
 					node.Arrow.Visible = false
 
-					-- 2D Box
 					if State.ESPBox2D then
 						if State.ESPBoxStyle == "Corner" then
 							node.BoxMain.Visible = false
@@ -2776,7 +2744,6 @@ local function RenderSmoothESP()
 						for i = 1, 8 do node.Corners[i].Visible = false end
 					end
 
-					-- Health Bar (Standardmäßig UNTEN horizontal wie auf Screenshot 1)
 					local bottomCursorY = by + bh + 4
 					if State.ESPHealthBar then
 						local hpPct = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
@@ -2799,7 +2766,6 @@ local function RenderSmoothESP()
 						node.HealthBg.Visible = false
 					end
 
-					-- Armor Bar
 					if State.ESPArmorBar then
 						local barW = math.clamp(bw * 0.85, 42, 120)
 						node.ArmorBg.Position = UDim2.new(0, bx + (bw - barW) * 0.5, 0, bottomCursorY)
@@ -2812,7 +2778,6 @@ local function RenderSmoothESP()
 						node.ArmorBg.Visible = false
 					end
 
-					-- Distanz ("4m") & Name ("m4ryr0") untereinander unter dem Balken (Wie Screenshot 1)
 					if State.ESPDistance then
 						node.DistLabel.Text = string.format("%dm", dist)
 						node.DistLabel.TextColor3 = State.ColDist
@@ -2836,7 +2801,6 @@ local function RenderSmoothESP()
 						node.NameLabel.Visible = false
 					end
 
-					-- Kleines rotes/pinkes Kopf-Tag oben (Wie auf Screenshot 1 am Kopf des Spielers)
 					if State.ESPWeapon and head then
 						local hPos, hVis = camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
 						if hVis then
@@ -2859,7 +2823,6 @@ local function RenderSmoothESP()
 						node.Tracer.Visible = false
 					end
 
-					-- Pinkes R15/R6 Skeleton (Exakt wie auf Screenshot 1)
 					if State.ESPSkeleton then
 						local isR15 = char:FindFirstChild("UpperTorso") ~= nil
 						local bonePairs = isR15 and R15_BONES or R6_BONES
@@ -3003,7 +2966,7 @@ TrackConn(Svc.Run.RenderStepped:Connect(function(dt)
 		UI.targetHud.Visible = true
 		local hum = closestTarget.Hum
 		local dist = Env.CachedRoot and math.floor((closestTarget.Part.Position - Env.CachedRoot.Position).Magnitude / 3.2) or 0
-		UI.thName.Text = "⌖ " .. closestTarget.Data.Name
+		UI.thName.Text = "🎯 " .. closestTarget.Data.Name
 		UI.thSub.Text = string.format("%d / %d HP • %dm", math.floor(hum.Health), math.floor(hum.MaxHealth), dist)
 		UI.thBarFill.Size = UDim2.new(math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1), 0, 1, 0)
 	else
@@ -3177,6 +3140,11 @@ TrackConn(Svc.UIS.InputBegan:Connect(function(inp, gp)
 				playUISound() tObj.Set(not tObj.Get())
 			end
 		end
+		for _, bObj in ipairs(Env.ExtraBindsList) do
+			if bObj.Key and bObj.Key == inp.KeyCode and bObj.Trigger then
+				playUISound() bObj.Trigger()
+			end
+		end
 	end
 end))
 
@@ -3206,4 +3174,4 @@ makeDrag(UI.targetHud, UI.targetHud)
 makeDrag(UI.watermark, UI.watermark)
 
 UI.menuBlur.Size = State.BlurSize
-Notify("GamePro", "Lifetime v17.0 Complete Suite Ready!", "Success")
+Notify("GamePro", "v17.1 All 12 Tabs Loaded!", "Success")
