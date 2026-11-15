@@ -1,5 +1,5 @@
 -- ============================================================================
--- GAMEPRO UI SUITE // v17.1 FIXED & COMPLETE EDITION (ALL 12 TABS WORKING)
+-- GAMEPRO UI SUITE // v18.0 FULL-SPEC EDITION (ALL COMBAT, RADAR & ARROW SPECS)
 -- ============================================================================
 
 if not game:IsLoaded() then
@@ -48,6 +48,10 @@ local Env = {
 	BindingToggleObj = nil,
 	BindingExtraBtn = nil,
 	ExtraBindsList = {},
+	LockedAimbotTarget = nil,
+	LockedSilentTarget = nil,
+	TargetAcquireTime = 0,
+	LastTargetId = nil,
 	CachedChar = nil,
 	CachedHum = nil,
 	CachedRoot = nil,
@@ -123,18 +127,105 @@ local State = {
 	InfiniteAmmo = false, FreezeAmmo = false, ExplosiveAmmo = false,
 	DamageMultiplier = false, DamageMultVal = 2.0,
 
-	-- Combat & Aimbot
-	AimAssist = false, TargetLock = false, AimSmoothness = 40, AimFOV = 140,
-	ShowFOVCircle = true, FilledFOV = false, FOVColor = Color3.fromRGB(255, 255, 255),
-	MaxAimDistance = 500, ReactionTime = 35,
-	AimTargetPart = "Head", AimPriority = "Crosshair", AimCurve = "Natural",
-	ClosestBone = true, AimTeamCheck = false, AimWallCheck = true,
-	AimJitter = false, JitterStrength = 15, RandomOffset = true,
-	SilentAim = false, Prediction = false, PredictionFactor = 0.12,
-	Triggerbot = false, TriggerDelay = 40, TargetHUD = true,
+	-- ========================================================================
+	-- 1. AIMBOT FULL SPECIFICATION
+	-- ========================================================================
+	AimAssist = false,
+	ShowFOVCircle = true, FOVColor = Color3.fromRGB(255, 255, 255),
+	AimFOV = 140,
+	MaxAimDistance = 500,
+	TargetLock = false,
+	GlobalSmooth = 40,
+	HorizontalSmooth = 40,
+	VerticalSmooth = 40,
+	AimCurve = "Natural Smoothing", -- Linear Smoothing | Smooth Smoothing | Natural Smoothing
+	-- Hitbox Targeting System
+	AimHitHead = true,
+	AimHitNeck = false,
+	AimHitUpperBody = true,
+	AimHitPelvis = false,
+	AimHitRightCalf = false,
+	AimHitLeftCalf = false,
+	-- Priority Targeting System
+	AimPriority = "Nearest to Crosshair", -- Nearest to Crosshair | Nearest by Distance | Lowest Health | Highest Threat
+	AimNearestBone = true,
+	-- Filters & Overrides
+	AimFilterPlayers = true,
+	AimFilterNPC = true,
+	AimFilterFriends = false,
+	AimIgnoreDead = true,
+	AimIgnoreRolling = false,
+	AimIgnoreInvisible = true,
+	AimIgnoreAdmin = false,
+	AimStopAtHealthPct = 0,
+	AimPrioritiseDriver = false,
+	AimWheelOverride = false,
+	AimPrediction = false, PredictionFactor = 0.12,
+	AimSkipPoppedTires = true,
+	ReactionTime = 35,
+	-- Humanization Targeting System
+	AimJitter = false, JitterStrength = 15,
+	AimOvershoot = false,
+	DistanceScaling = true,
+	RandomOffset = true,
+
+	-- ========================================================================
+	-- 2. SILENT AIM FULL SPECIFICATION
+	-- ========================================================================
+	SilentAim = false,
+	SilentMagicBullet = false, -- Shoot through walls
+	SilentHitChance = 100,
+	SilentDrawLine = true, SilentLineColor = Color3.fromRGB(238, 130, 168),
+	SilentShowFOV = false, SilentFOVColor = Color3.fromRGB(238, 130, 168),
+	SilentFOV = 160,
+	SilentMaxDistance = 600,
+	SilentTargetLock = false, -- Only switch if old target is dead
+	-- Hitbox Targeting System
+	SilentHitHead = true,
+	SilentHitNeck = false,
+	SilentHitPelvis = true,
+	SilentHitLeftHand = false,
+	SilentHitRightHand = false,
+	SilentHitLeftFoot = false,
+	SilentHitRightFoot = false,
+	-- Priority Targeting System
+	SilentPriority = "Nearest to Crosshair",
+	SilentNearestBone = true,
+	-- Filters
+	SilentFilterPlayers = true,
+	SilentFilterNPC = true,
+	SilentFilterFriends = false,
+	SilentIgnoreDead = true,
+	SilentIgnoreRolling = false,
+	SilentIgnoreInvisible = true,
+	SilentIgnoreAdmin = false,
+	SilentStopAtHealthPct = 0,
 	HitboxExpander = false, HitboxSize = 6, HitboxTransparency = 65,
 
-	-- Visuals & ESP
+	-- ========================================================================
+	-- 3. TRIGGERBOT FULL SPECIFICATION
+	-- ========================================================================
+	Triggerbot = false,
+	TriggerDelay = 40,
+	TriggerShowFOV = false, TriggerFOVColor = Color3.fromRGB(95, 235, 75),
+	TriggerFOV = 90,
+	TriggerMaxDistance = 400,
+	TriggerHitHead = true,
+	TriggerHitNeck = true,
+	TriggerHitUpperBody = true,
+	TriggerHitLowerBody = false,
+	TriggerHitFullBody = true,
+	TriggerFilterPlayers = true,
+	TriggerFilterNPC = true,
+	TriggerFilterFriends = false,
+	TriggerIgnoreDead = true,
+	TriggerIgnoreRolling = false,
+	TriggerIgnoreInvisible = true,
+	TargetHUD = true,
+
+	-- ========================================================================
+	-- 4. VISUALS, RADAR & ARROWS FULL SPECIFICATION
+	-- ========================================================================
 	MasterESP = true,
 	ESPBox2D = false, ESPBoxStyle = "Corner", ESPBoxFilled = false, ESPBoxFillTrans = 75,
 	ESPThickness = 1.5,
@@ -142,10 +233,43 @@ local State = {
 	ESPNametags = true, ESPDistance = true, ESPWeapon = true, ESPTextSize = 11,
 	ESPTracers = false, TracerOrigin = "Bottom",
 	ESPLookingAtMe = true, ESPChams = false, ChamsFillTrans = 65,
-	ESPOffScreen = false, ArrowRadius = 38, ArrowSize = 15,
 	ESPShowPlayers = true, ESPShowNPCs = true, ESPShowLocal = false, ESPShowFriends = true,
 	ESPVisibleCheck = true, ESPShowDead = false, ESPTeamColors = false,
-	ShowRadar = false, RadarRange = 140, MaxESPDistance = 500, TextOutline = 22,
+	MaxESPDistance = 500, TextOutline = 22,
+
+	-- Radar Visual Specs
+	ShowRadar = false,
+	RadarShowPlayers = true,
+	RadarShowNPC = true,
+	RadarShowDead = false,
+	RadarShowNames = true,
+	RadarShowDistance = true,
+	RadarRange = 150,
+	RadarWidth = 175,
+	RadarHeight = 175,
+	RadarZoom = 1.0,
+	RadarTransparency = 10,
+
+	-- Arrows Visual Specs
+	ESPOffScreen = false,
+	ArrowShowPlayers = true,
+	ArrowShowNPC = true,
+	ArrowShowDead = false,
+	ArrowShowNames = true,
+	ArrowShowDistance = true,
+	ArrowPulse = true,
+	ArrowDynamicSize = true,
+	ArrowWeaponMode = "Weapon Name & Icon", -- Off | Weapon Icon | Weapon Name | Weapon Name & Icon
+	ArrowStyle = "Arrow Style New", -- Arrow Style New | Arrow Style Triangle | Arrow Style Solid
+	ArrowColClose = Color3.fromRGB(245, 65, 65),
+	ArrowColMid = Color3.fromRGB(245, 185, 55),
+	ArrowColFar = Color3.fromRGB(85, 225, 105),
+	ArrowCloseDist = 25,
+	ArrowFarDist = 250,
+	ArrowFadeByDist = true,
+	ArrowFOVSize = 38,
+	ArrowSize = 16,
+	ArrowMaxDist = 600,
 
 	ColBox = Color3.fromRGB(255, 255, 255),
 	ColSkeleton = Color3.fromRGB(238, 130, 168),
@@ -307,59 +431,63 @@ TrackConn(Svc.UIS.JumpRequest:Connect(function()
 	end
 end))
 
-local function GetCombatTargets()
+local function IsFriendWithLocal(plr)
+	if not plr or plr == player then return false end
+	local ok, res = pcall(function() return player:IsFriendsWith(plr.UserId) end)
+	return ok and res
+end
+
+local function GetAllEntities()
 	local list = {}
-	if State.ESPShowPlayers then
-		for idx, plr in ipairs(Svc.Players:GetPlayers()) do
-			if (plr ~= player or State.ESPShowLocal) and plr.Character then
-				table.insert(list, {
-					Id = "Plr_" .. plr.UserId,
-					ServerIndex = idx,
-					Name = plr.DisplayName,
-					PlayerObj = plr,
-					Char = plr.Character,
-					Team = plr.Team,
-					TeamColor = (State.ESPTeamColors and plr.TeamColor) and plr.TeamColor.Color or nil,
-					UserId = plr.UserId,
-					IsNPC = false
-				})
-			end
+	for idx, plr in ipairs(Svc.Players:GetPlayers()) do
+		if (plr ~= player or State.ESPShowLocal) and plr.Character then
+			table.insert(list, {
+				Id = "Plr_" .. plr.UserId,
+				ServerIndex = idx,
+				Name = plr.DisplayName,
+				PlayerObj = plr,
+				Char = plr.Character,
+				Team = plr.Team,
+				TeamColor = (State.ESPTeamColors and plr.TeamColor) and plr.TeamColor.Color or nil,
+				UserId = plr.UserId,
+				IsNPC = false,
+				IsFriend = IsFriendWithLocal(plr)
+			})
 		end
 	end
-	if State.ESPShowNPCs then
-		for i, d in ipairs(Env.spawnedDummies) do
-			if d and d.Parent then
-				table.insert(list, {
-					Id = "Dummy_" .. i,
-					ServerIndex = 100 + i,
-					Name = d.Name,
-					PlayerObj = nil,
-					Char = d,
-					Team = nil,
-					TeamColor = nil,
-					UserId = player.UserId,
-					IsNPC = true
-				})
-			end
+	for i, d in ipairs(Env.spawnedDummies) do
+		if d and d.Parent then
+			table.insert(list, {
+				Id = "Dummy_" .. i,
+				ServerIndex = 100 + i,
+				Name = d.Name,
+				PlayerObj = nil,
+				Char = d,
+				Team = nil,
+				TeamColor = nil,
+				UserId = player.UserId,
+				IsNPC = true,
+				IsFriend = false
+			})
 		end
 	end
 	return list
 end
 
 -- ============================================================================
--- UI SETUP (GAMEPRO v17.1)
+-- UI SETUP (GAMEPRO v18.0)
 -- ============================================================================
 do
 	local playerGui = player:WaitForChild("PlayerGui", 10)
 	local guiParent = playerGui or game:GetService("CoreGui")
-	for _, oldName in ipairs({"TestGameProV14", "GameProSuiteV16", "GameProSuiteV17", "GameProSuiteV17_1"}) do
+	for _, oldName in ipairs({"TestGameProV14", "GameProSuiteV16", "GameProSuiteV17", "GameProSuiteV17_1", "GameProSuiteV18"}) do
 		if guiParent:FindFirstChild(oldName) then
 			guiParent[oldName]:Destroy()
 		end
 	end
 
 	UI.gui = Instance.new("ScreenGui")
-	UI.gui.Name = "GameProSuiteV17_1"
+	UI.gui.Name = "GameProSuiteV18"
 	UI.gui.ResetOnSpawn = false
 	UI.gui.IgnoreGuiInset = true
 	UI.gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -389,6 +517,13 @@ do
 	UI.masterRoot.Size = UDim2.new(1, 0, 1, 0)
 	UI.masterRoot.BackgroundTransparency = 1
 	UI.masterRoot.ZIndex = 5
+
+	-- Silent Aim Snapline zum Ziel
+	UI.silentTargetLine = Instance.new("Frame", UI.masterRoot)
+	UI.silentTargetLine.AnchorPoint = Vector2.new(0.5, 0.5)
+	UI.silentTargetLine.BorderSizePixel = 0
+	UI.silentTargetLine.BackgroundColor3 = State.SilentLineColor
+	UI.silentTargetLine.Visible = false
 
 	-- Watermark oben rechts
 	UI.watermark = Instance.new("Frame", UI.masterRoot)
@@ -449,7 +584,7 @@ do
 	UI.chV.AnchorPoint = Vector2.new(0.5, 0.5) UI.chV.Position = UDim2.new(0.5, 0, 0.5, 0)
 	UI.chV.BackgroundColor3 = Colors.Accent UI.chV.BorderSizePixel = 0
 
-	-- FOV Circle
+	-- 3 separate FOV Circles (Aimbot, Silent Aim, Triggerbot)
 	UI.fovCircle = Instance.new("Frame", UI.masterRoot)
 	UI.fovCircle.Size = UDim2.new(0, State.AimFOV * 2, 0, State.AimFOV * 2)
 	UI.fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -461,13 +596,33 @@ do
 	UI.fovStroke = stroke(UI.fovCircle, State.FOVColor, 1.3)
 	UI.fovStroke.Transparency = 0.2
 
+	UI.silentFovCircle = Instance.new("Frame", UI.masterRoot)
+	UI.silentFovCircle.Size = UDim2.new(0, State.SilentFOV * 2, 0, State.SilentFOV * 2)
+	UI.silentFovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+	UI.silentFovCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+	UI.silentFovCircle.BackgroundTransparency = 1
+	UI.silentFovCircle.Visible = State.SilentShowFOV
+	corner(UI.silentFovCircle, 999)
+	UI.silentFovStroke = stroke(UI.silentFovCircle, State.SilentFOVColor, 1.3)
+	UI.silentFovStroke.Transparency = 0.25
+
+	UI.trigFovCircle = Instance.new("Frame", UI.masterRoot)
+	UI.trigFovCircle.Size = UDim2.new(0, State.TriggerFOV * 2, 0, State.TriggerFOV * 2)
+	UI.trigFovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+	UI.trigFovCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+	UI.trigFovCircle.BackgroundTransparency = 1
+	UI.trigFovCircle.Visible = State.TriggerShowFOV
+	corner(UI.trigFovCircle, 999)
+	UI.trigFovStroke = stroke(UI.trigFovCircle, State.TriggerFOVColor, 1.2)
+	UI.trigFovStroke.Transparency = 0.3
+
 	-- 2D Radar
 	UI.radarFrame = Instance.new("Frame", UI.masterRoot)
-	UI.radarFrame.Size = UDim2.new(0, 160, 0, 160)
+	UI.radarFrame.Size = UDim2.new(0, State.RadarWidth, 0, State.RadarHeight)
 	UI.radarFrame.Position = UDim2.new(0, 22, 0, 52)
 	UI.radarFrame.BackgroundColor3 = Colors.WindowBg
-	UI.radarFrame.BackgroundTransparency = 0.08
-	UI.radarFrame.Visible = false
+	UI.radarFrame.BackgroundTransparency = State.RadarTransparency / 100
+	UI.radarFrame.Visible = State.ShowRadar
 	UI.radarFrame.ClipsDescendants = true
 	corner(UI.radarFrame, 8)
 	stroke(UI.radarFrame, Colors.Stroke, 1)
@@ -526,9 +681,7 @@ do
 	local toastList = Instance.new("UIListLayout", UI.toastHolder)
 	toastList.VerticalAlignment = Enum.VerticalAlignment.Bottom toastList.Padding = UDim.new(0, 6)
 
-	-- ========================================================================
 	-- HAUPTFENSTER & FLOATING SETTINGS WINDOW
-	-- ========================================================================
 	UI.mainContainer = Instance.new("Frame", UI.masterRoot)
 	UI.mainContainer.Size = UDim2.new(0, 860, 0, 620)
 	UI.mainContainer.Position = UDim2.new(0.5, -490, 0.5, -310)
@@ -556,7 +709,6 @@ do
 	sideBorder.Size = UDim2.new(0, 1, 1, 0) sideBorder.Position = UDim2.new(1, -1, 0, 0)
 	sideBorder.BackgroundColor3 = Colors.Stroke sideBorder.BorderSizePixel = 0
 
-	-- GAMEPRO LOGO OBEN LINKS MIT RECHTS STEHENDEM PUNKT (KEIN UIListLayout-Dreher)
 	local logoHolder = Instance.new("Frame", UI.sidebar)
 	logoHolder.Size = UDim2.new(1, 0, 0, 74)
 	logoHolder.BackgroundTransparency = 1
@@ -583,7 +735,6 @@ do
 	UI.navScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y UI.navScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 	local navLayout = Instance.new("UIListLayout", UI.navScroll) navLayout.Padding = UDim.new(0, 4)
 
-	-- FOOTER PROFIL UNTEN LINKS
 	local profileDivider = Instance.new("Frame", UI.sidebar)
 	profileDivider.Size = UDim2.new(1, -24, 0, 1) profileDivider.Position = UDim2.new(0, 12, 1, -66)
 	profileDivider.BackgroundColor3 = Colors.Stroke profileDivider.BorderSizePixel = 0
@@ -615,7 +766,6 @@ do
 	UI.pRank.Font = Enum.Font.GothamMedium UI.pRank.TextSize = 10 UI.pRank.TextColor3 = Colors.Accent
 	UI.pRank.TextXAlignment = Enum.TextXAlignment.Left
 
-	-- RECHTER HAUPTBEREICH
 	local rightArea = Instance.new("Frame", UI.mainWin)
 	rightArea.Size = UDim2.new(1, -165, 1, 0) rightArea.Position = UDim2.new(0, 165, 0, 0)
 	rightArea.BackgroundTransparency = 1
@@ -644,7 +794,7 @@ do
 	UI.pagesContainer.Size = UDim2.new(1, -32, 1, -72) UI.pagesContainer.Position = UDim2.new(0, 16, 0, 64)
 	UI.pagesContainer.BackgroundTransparency = 1
 
-	-- FLOATING SETTINGS WINDOW RECHTS DANEBEN
+	-- FLOATING SETTINGS WINDOW
 	UI.settingsWin = Instance.new("Frame", UI.mainContainer)
 	UI.settingsWin.Size = UDim2.new(0, 260, 0, 395)
 	UI.settingsWin.Position = UDim2.new(1, 14, 0, 42)
@@ -918,6 +1068,7 @@ local function CreateToggle(parent, labelText, default, callback, opts)
 	lbl.BackgroundTransparency = 1
 	lbl.Text = labelText lbl.Font = Enum.Font.GothamMedium lbl.TextSize = 11
 	lbl.TextColor3 = Colors.TextMain lbl.TextXAlignment = Enum.TextXAlignment.Left
+	lbl.TextTruncate = Enum.TextTruncate.AtEnd
 
 	if opts.Info then
 		local infoBadge = Instance.new("TextLabel", titleHolder)
@@ -1076,21 +1227,22 @@ local function CreateDropdown(parent, labelText, options, defaultIdx, callback)
 	addBottomBorder(row)
 
 	local lbl = Instance.new("TextLabel", row)
-	lbl.Size = UDim2.new(0.48, 0, 1, 0) lbl.Position = UDim2.new(0, 12, 0, 0)
+	lbl.Size = UDim2.new(0.45, 0, 1, 0) lbl.Position = UDim2.new(0, 12, 0, 0)
 	lbl.BackgroundTransparency = 1 lbl.Text = labelText
 	lbl.Font = Enum.Font.GothamMedium lbl.TextSize = 11 lbl.TextColor3 = Colors.TextMain
 	lbl.TextXAlignment = Enum.TextXAlignment.Left
 
 	local dropBtn = Instance.new("TextButton", row)
-	dropBtn.Size = UDim2.new(0, 120, 0, 26) dropBtn.Position = UDim2.new(1, -132, 0.5, -13)
+	dropBtn.Size = UDim2.new(0, 142, 0, 26) dropBtn.Position = UDim2.new(1, -154, 0.5, -13)
 	dropBtn.BackgroundColor3 = Colors.ElementBg dropBtn.Text = ""
 	corner(dropBtn, 5) stroke(dropBtn, Colors.Stroke, 1)
 
 	local valTxt = Instance.new("TextLabel", dropBtn)
-	valTxt.Size = UDim2.new(1, -24, 1, 0) valTxt.Position = UDim2.new(0, 10, 0, 0)
+	valTxt.Size = UDim2.new(1, -24, 1, 0) valTxt.Position = UDim2.new(0, 8, 0, 0)
 	valTxt.BackgroundTransparency = 1 valTxt.Text = options[idx]
-	valTxt.Font = Enum.Font.GothamMedium valTxt.TextSize = 11 valTxt.TextColor3 = Colors.TextMain
+	valTxt.Font = Enum.Font.GothamMedium valTxt.TextSize = 10 valTxt.TextColor3 = Colors.TextMain
 	valTxt.TextXAlignment = Enum.TextXAlignment.Left
+	valTxt.TextTruncate = Enum.TextTruncate.AtEnd
 
 	local arrow = Instance.new("TextLabel", dropBtn)
 	arrow.Size = UDim2.new(0, 16, 1, 0) arrow.Position = UDim2.new(1, -18, 0, 0)
@@ -1102,6 +1254,34 @@ local function CreateDropdown(parent, labelText, options, defaultIdx, callback)
 		idx = (idx % #options) + 1
 		valTxt.Text = options[idx]
 		if callback then callback(options[idx]) end
+	end)
+end
+
+local function CreateColorRow(parent, labelText, defaultCol, callback)
+	local cIdx = 1
+	local row = Instance.new("Frame", parent)
+	row.Size = UDim2.new(1, 0, 0, 36) row.BackgroundTransparency = 1
+	addBottomBorder(row)
+
+	local lbl = Instance.new("TextLabel", row)
+	lbl.Size = UDim2.new(0.75, 0, 1, 0) lbl.Position = UDim2.new(0, 12, 0, 0)
+	lbl.BackgroundTransparency = 1 lbl.Text = labelText
+	lbl.Font = Enum.Font.GothamMedium lbl.TextSize = 11 lbl.TextColor3 = Colors.TextMain
+	lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+	local cDot = Instance.new("TextButton", row)
+	cDot.Size = UDim2.new(0, 16, 0, 16)
+	cDot.Position = UDim2.new(1, -28, 0.5, -8)
+	cDot.BackgroundColor3 = defaultCol
+	cDot.Text = ""
+	corner(cDot, 99)
+
+	cDot.MouseButton1Click:Connect(function()
+		playUISound()
+		cIdx = (cIdx % #ColorPalette) + 1
+		local newCol = ColorPalette[cIdx]
+		cDot.BackgroundColor3 = newCol
+		if callback then callback(newCol) end
 	end)
 end
 
@@ -1267,7 +1447,6 @@ local function CreateKeybindRow(parent, labelText, defaultKeyTxt, defaultKeyCode
 	end)
 end
 
--- ROBUSTES KATEGORIE- & SUB-TAB-SYSTEM (GARANTIERT OHNE UDim-FEHLER)
 local function CreateCategory(icon, name)
 	local btn = Instance.new("TextButton", UI.navScroll)
 	btn.Size = UDim2.new(1, 0, 0, 34) btn.BackgroundColor3 = Colors.ActiveTabBg
@@ -1405,6 +1584,7 @@ local function CreateCategory(icon, name)
 			function BoxAPI:Slider(lbl, min, max, def, suf, cb, dec) return CreateSlider(box, lbl, min, max, def, suf, cb, dec) end
 			function BoxAPI:Toggle(lbl, def, cb, opts) return CreateToggle(box, lbl, def, cb, opts) end
 			function BoxAPI:Dropdown(lbl, opts, defIdx, cb) return CreateDropdown(box, lbl, opts, defIdx, cb) end
+			function BoxAPI:ColorRow(lbl, defCol, cb) return CreateColorRow(box, lbl, defCol, cb) end
 			function BoxAPI:Segmented(lbl, a, b, cb) return CreateSegmented(box, lbl, a, b, cb) end
 			function BoxAPI:FullButton(btnTxt, cb, bg) return CreateFullButton(box, btnTxt, cb, bg) end
 			function BoxAPI:ButtonRow(list, h) return CreateButtonRow(box, list, h) end
@@ -1424,7 +1604,7 @@ local function getTargetRoot()
 end
 
 local function resetHitboxes()
-	for _, t in ipairs(GetCombatTargets()) do
+	for _, t in ipairs(GetAllEntities()) do
 		local hrp = t.Char and t.Char:FindFirstChild("HumanoidRootPart")
 		if hrp then
 			hrp.Size = Vector3.new(2, 2, 1)
@@ -1484,56 +1664,144 @@ do
 end
 
 -- ============================================================================
--- ALLE 12 HAUPTKATEGORIEN AUFBAUEN (OHNE KÄSTCHEN-ICONS)
+-- 1. COMBAT (ALLE GEWÜNSCHTEN AIMBOT, SILENT AIM & TRIGGERBOT SPECS)
 -- ============================================================================
-
--- 1. COMBAT
 do
 	local CatCombat = CreateCategory("🎯", "Combat")
 
+	-- ========================================================================
+	-- SUB-TAB 1: AIMBOT (KOMPLETT)
+	-- ========================================================================
 	local SubAim = CatCombat:AddSubTab("🎯", "Aimbot")
-	local gSetup = SubAim:AddGroupbox("Left", "🎯", "Aimbot Setup")
-	gSetup:Toggle("Enable Aimbot", false, function(s) State.AimAssist = s end, {Gear = true})
-	gSetup:Toggle("Target Lock", false, function(s) State.TargetLock = s end, {Gear = false})
-	gSetup:Toggle("Show FOV", true, function(s)
+
+	local gAimCore = SubAim:AddGroupbox("Left", "🎯", "Aimbot Core & Smoothing")
+	gAimCore:Toggle("Enable Aimbot", false, function(s) State.AimAssist = s end, {Gear = true})
+	gAimCore:Toggle("Show FOV", true, function(s)
 		State.ShowFOVCircle = s
 		UI.fovCircle.Visible = s and not State.Streamproof
 	end, {Gear = false, Color = State.FOVColor, OnColor = function(c)
 		State.FOVColor = c UI.fovStroke.Color = c UI.fovCircle.BackgroundColor3 = c
 	end})
-	gSetup:Slider("FOV Size", 1, 35, 8.0, "", function(v)
+	gAimCore:Slider("FOV Size", 1, 35, 8.0, "", function(v)
 		State.AimFOV = v * 17.5
 		UI.fovCircle.Size = UDim2.new(0, State.AimFOV * 2, 0, State.AimFOV * 2)
 	end, 1)
-	gSetup:Slider("Max Distance", 50, 1500, 500, "m", function(v) State.MaxAimDistance = v end)
-
-	local gRules = SubAim:AddGroupbox("Left", "▼", "Target Rules")
-	gRules:Dropdown("Hitbox", {"Upper Body", "Head", "HumanoidRootPart", "LowerTorso"}, 1, function(val)
-		State.AimTargetPart = (val == "Upper Body") and "HumanoidRootPart" or val
+	gAimCore:Slider("Max Distance", 50, 1500, 500, "m", function(v) State.MaxAimDistance = v end)
+	gAimCore:Toggle("Target Lock", false, function(s)
+		State.TargetLock = s
+		if not s then Env.LockedAimbotTarget = nil end
+	end, {Gear = true})
+	gAimCore:Slider("Global Smooth", 1, 100, 40, "%", function(v) State.GlobalSmooth = v end)
+	gAimCore:Slider("Horizontal Smooth", 1, 100, 40, "%", function(v) State.HorizontalSmooth = v end)
+	gAimCore:Slider("Vertical Smooth", 1, 100, 40, "%", function(v) State.VerticalSmooth = v end)
+	gAimCore:Dropdown("Aim Curve", {"Natural Smoothing", "Linear Smoothing", "Smooth Smoothing"}, 1, function(val)
+		State.AimCurve = val
 	end)
-	gRules:Dropdown("Target Priority", {"Crosshair", "Distance", "Lowest HP"}, 1, function(val) State.AimPriority = val end)
-	gRules:Toggle("Closest Bone", true, function(s) State.ClosestBone = s end, {Gear = false, Info = true})
-	gRules:Toggle("Target Players", true, function(s) State.ESPShowPlayers = s end, {Gear = false})
-	gRules:Toggle("Target NPCs", true, function(s) State.ESPShowNPCs = s end, {Gear = false})
 
-	local gBehav = SubAim:AddGroupbox("Right", "⚙", "Aim Behavior")
-	gBehav:Dropdown("Aim Curve", {"Natural", "Linear", "Exponential"}, 1, function(val) State.AimCurve = val end)
-	gBehav:Segmented("Smooth Mode", "Standard", "Advanced", function() end)
-	gBehav:Slider("Smooth", 5, 100, 40, "", function(v) State.AimSmoothness = v end)
-	gBehav:Slider("Reaction Time", 0, 200, 35, "ms", function(v) State.ReactionTime = v end)
-	gBehav:Toggle("Jitter", false, function(s) State.AimJitter = s end, {Gear = true, Info = true})
-	gBehav:Toggle("Overshoot", false, function() end, {Gear = true, Info = true})
-	gBehav:Toggle("Break Aim", false, function() end, {Gear = true, Info = true})
-	gBehav:Toggle("Distance Scaling", true, function() end, {Gear = false, Info = true})
-	gBehav:Toggle("Random Offset", true, function(s) State.RandomOffset = s end, {Gear = true, Info = true})
+	local gAimHitbox = SubAim:AddGroupbox("Left", "🦴", "Hitbox Targeting System")
+	gAimHitbox:Toggle("Target Nearest Hitbox Bone", true, function(s) State.AimNearestBone = s end, {Gear = false, Info = true})
+	gAimHitbox:Toggle("Target Head", true, function(s) State.AimHitHead = s end, {Gear = false})
+	gAimHitbox:Toggle("Target Neck", false, function(s) State.AimHitNeck = s end, {Gear = false})
+	gAimHitbox:Toggle("Target Upper Body", true, function(s) State.AimHitUpperBody = s end, {Gear = false})
+	gAimHitbox:Toggle("Target Pelvis", false, function(s) State.AimHitPelvis = s end, {Gear = false})
+	gAimHitbox:Toggle("Target Right Calf", false, function(s) State.AimHitRightCalf = s end, {Gear = false})
+	gAimHitbox:Toggle("Target Left Calf", false, function(s) State.AimHitLeftCalf = s end, {Gear = false})
 
+	local gAimPrio = SubAim:AddGroupbox("Right", "⚡", "Priority Targeting System")
+	gAimPrio:Dropdown("Priority Mode", {
+		"Nearest to Crosshair",
+		"Nearest by Distance",
+		"Lowest Health",
+		"Highest Threat"
+	}, 1, function(val) State.AimPriority = val end)
+	gAimPrio:Toggle("Prioritize Highest Threat (Aim Monitor)", true, function(s)
+		if s then State.AimPriority = "Highest Threat" end
+	end, {Gear = false, Info = true})
+	gAimPrio:Toggle("Prioritise Vehicle Driver", false, function(s) State.AimPrioritiseDriver = s end, {Gear = false})
+	gAimPrio:Toggle("Targeting Override for Wheels", false, function(s) State.AimWheelOverride = s end, {Gear = true})
+	gAimPrio:Toggle("Skip Popped Tires", true, function(s) State.AimSkipPoppedTires = s end, {Gear = false})
+	gAimPrio:Toggle("Target Prediction", false, function(s) State.AimPrediction = s end, {
+		Gear = true,
+		PopupSlider = {Label = "Prediction", Min = 0.02, Max = 0.35, Default = 0.12, Callback = function(v) State.PredictionFactor = v end}
+	})
+	gAimPrio:Slider("Stop Targeting at Health %", 0, 50, 0, "%", function(v) State.AimStopAtHealthPct = v end)
+
+	local gAimFilter = SubAim:AddGroupbox("Right", "▼", "Target Filters")
+	gAimFilter:Toggle("Filter Target Players", true, function(s) State.AimFilterPlayers = s end, {Gear = false})
+	gAimFilter:Toggle("Filter Target NPC", true, function(s) State.AimFilterNPC = s end, {Gear = false})
+	gAimFilter:Toggle("Filter Target Friends", false, function(s) State.AimFilterFriends = s end, {Gear = false})
+	gAimFilter:Toggle("Filter Ignore Dead", true, function(s) State.AimIgnoreDead = s end, {Gear = false})
+	gAimFilter:Toggle("Filter Ignore Rolling", false, function(s) State.AimIgnoreRolling = s end, {Gear = false})
+	gAimFilter:Toggle("Filter Ignore Invisible", true, function(s) State.AimIgnoreInvisible = s end, {Gear = false})
+	gAimFilter:Toggle("Filter Ignore Admin", false, function(s) State.AimIgnoreAdmin = s end, {Gear = false})
+
+	local gAimHuman = SubAim:AddGroupbox("Right", "🧠", "Humanization Targeting System")
+	gAimHuman:Slider("Reaction Time in ms", 0, 250, 35, "ms", function(v) State.ReactionTime = v end)
+	gAimHuman:Toggle("Jitter & Shake (Muscle Vibration)", false, function(s) State.AimJitter = s end, {
+		Gear = true, Info = true,
+		PopupSlider = {Label = "Vibration", Min = 1, Max = 50, Default = 15, Callback = function(v) State.JitterStrength = v end}
+	})
+	gAimHuman:Toggle("Overshoot (Fake Imperfection)", false, function(s) State.AimOvershoot = s end, {Gear = true, Info = true})
+	gAimHuman:Toggle("Distance Scaling (Reduce Accuracy)", true, function(s) State.DistanceScaling = s end, {Gear = false, Info = true})
+	gAimHuman:Toggle("Random Offset (Vulnerable Hitbox)", true, function(s) State.RandomOffset = s end, {Gear = true, Info = true})
+
+	-- ========================================================================
+	-- SUB-TAB 2: SILENT AIM (KOMPLETT)
+	-- ========================================================================
 	local SubSilent = CatCombat:AddSubTab("◎", "Silent Aim")
-	local gSil = SubSilent:AddGroupbox("Left", "◎", "Silent Aim Settings")
-	gSil:Toggle("Enable Silent Aim", false, function(s) State.SilentAim = s end, {Gear = true})
-	gSil:Toggle("Movement Prediction", false, function(s) State.Prediction = s end, {Gear = true})
-	gSil:Slider("Prediction Factor", 1, 35, 12, "%", function(v) State.PredictionFactor = v / 100 end)
-	gSil:Toggle("Wall Check (Visible Only)", true, function(s) State.AimWallCheck = s end, {Gear = false})
-	gSil:Toggle("Team Check", false, function(s) State.AimTeamCheck = s end, {Gear = false})
+
+	local gSilCore = SubSilent:AddGroupbox("Left", "◎", "Silent Aim Core")
+	gSilCore:Toggle("Enable Silent Aim", false, function(s) State.SilentAim = s end, {Gear = true})
+	gSilCore:Toggle("Magic Bullet (Shoot Through Walls)", false, function(s) State.SilentMagicBullet = s end, {Gear = true, Info = true})
+	gSilCore:Slider("Hit Chance (Miss % Base)", 1, 100, 100, "%", function(v) State.SilentHitChance = v end)
+	gSilCore:Toggle("Draw Line to Target", true, function(s) State.SilentDrawLine = s end, {
+		Gear = false, Color = State.SilentLineColor, OnColor = function(c)
+			State.SilentLineColor = c UI.silentTargetLine.BackgroundColor3 = c
+		end
+	})
+	gSilCore:Toggle("Show FOV", false, function(s)
+		State.SilentShowFOV = s
+		UI.silentFovCircle.Visible = s and not State.Streamproof
+	end, {Gear = false, Color = State.SilentFOVColor, OnColor = function(c)
+		State.SilentFOVColor = c UI.silentFovStroke.Color = c
+	end})
+	gSilCore:Slider("FOV Size", 10, 400, 160, "px", function(v)
+		State.SilentFOV = v
+		UI.silentFovCircle.Size = UDim2.new(0, v * 2, 0, v * 2)
+	end)
+	gSilCore:Slider("Max Distance", 50, 1500, 600, "m", function(v) State.SilentMaxDistance = v end)
+	gSilCore:Toggle("Target Lock (Switch Only If Dead)", false, function(s)
+		State.SilentTargetLock = s
+		if not s then Env.LockedSilentTarget = nil end
+	end, {Gear = true, Info = true})
+
+	local gSilHitbox = SubSilent:AddGroupbox("Left", "🦴", "Hitbox Targeting System")
+	gSilHitbox:Toggle("Target Nearest Hitbox Bone", true, function(s) State.SilentNearestBone = s end, {Gear = false, Info = true})
+	gSilHitbox:Toggle("Target Head", true, function(s) State.SilentHitHead = s end, {Gear = false})
+	gSilHitbox:Toggle("Target Neck", false, function(s) State.SilentHitNeck = s end, {Gear = false})
+	gSilHitbox:Toggle("Target Pelvis", true, function(s) State.SilentHitPelvis = s end, {Gear = false})
+	gSilHitbox:Toggle("Target Left Hand", false, function(s) State.SilentHitLeftHand = s end, {Gear = false})
+	gSilHitbox:Toggle("Target Right Hand", false, function(s) State.SilentHitRightHand = s end, {Gear = false})
+	gSilHitbox:Toggle("Target Left Foot", false, function(s) State.SilentHitLeftFoot = s end, {Gear = false})
+	gSilHitbox:Toggle("Target Right Foot", false, function(s) State.SilentHitRightFoot = s end, {Gear = false})
+
+	local gSilPrio = SubSilent:AddGroupbox("Right", "⚡", "Priority Targeting System")
+	gSilPrio:Dropdown("Silent Priority", {
+		"Nearest to Crosshair",
+		"Nearest by Distance",
+		"Lowest Health",
+		"Highest Threat"
+	}, 1, function(val) State.SilentPriority = val end)
+	gSilPrio:Slider("Stop Targeting at Health %", 0, 50, 0, "%", function(v) State.SilentStopAtHealthPct = v end)
+
+	local gSilFilter = SubSilent:AddGroupbox("Right", "▼", "Silent Target Filters")
+	gSilFilter:Toggle("Filter Target Players", true, function(s) State.SilentFilterPlayers = s end, {Gear = false})
+	gSilFilter:Toggle("Filter Target NPC", true, function(s) State.SilentFilterNPC = s end, {Gear = false})
+	gSilFilter:Toggle("Filter Target Friends", false, function(s) State.SilentFilterFriends = s end, {Gear = false})
+	gSilFilter:Toggle("Filter Ignore Dead", true, function(s) State.SilentIgnoreDead = s end, {Gear = false})
+	gSilFilter:Toggle("Filter Ignore Rolling", false, function(s) State.SilentIgnoreRolling = s end, {Gear = false})
+	gSilFilter:Toggle("Filter Ignore Invisible", true, function(s) State.SilentIgnoreInvisible = s end, {Gear = false})
+	gSilFilter:Toggle("Filter Ignore Admin", false, function(s) State.SilentIgnoreAdmin = s end, {Gear = false})
 
 	local gHit = SubSilent:AddGroupbox("Right", "🎯", "Hitbox Expander")
 	gHit:Toggle("Expand Hitboxes", false, function(s)
@@ -1542,14 +1810,46 @@ do
 	end, {Gear = true})
 	gHit:Slider("Hitbox Size", 2, 25, 6, "m", function(v) State.HitboxSize = v end)
 
+	-- ========================================================================
+	-- SUB-TAB 3: TRIGGERBOT (KOMPLETT)
+	-- ========================================================================
 	local SubTrig = CatCombat:AddSubTab("✦", "Triggerbot")
-	local gTrig = SubTrig:AddGroupbox("Left", "✦", "Triggerbot Configuration")
-	gTrig:Toggle("Enable Triggerbot", false, function(s) State.Triggerbot = s end, {Gear = true})
-	gTrig:Slider("Trigger Delay", 0, 250, 40, "ms", function(v) State.TriggerDelay = v end)
-	gTrig:Toggle("Show Target HUD", true, function(s) State.TargetHUD = s end, {Gear = false})
+
+	local gTrigCore = SubTrig:AddGroupbox("Left", "✦", "Triggerbot Core")
+	gTrigCore:Toggle("Enable Triggerbot", false, function(s) State.Triggerbot = s end, {Gear = true})
+	gTrigCore:Slider("Delay in ms", 0, 300, 40, "ms", function(v) State.TriggerDelay = v end)
+	gTrigCore:Toggle("Show FOV", false, function(s)
+		State.TriggerShowFOV = s
+		UI.trigFovCircle.Visible = s and not State.Streamproof
+	end, {Gear = false, Color = State.TriggerFOVColor, OnColor = function(c)
+		State.TriggerFOVColor = c UI.trigFovStroke.Color = c
+	end})
+	gTrigCore:Slider("FOV Size", 10, 300, 90, "px", function(v)
+		State.TriggerFOV = v
+		UI.trigFovCircle.Size = UDim2.new(0, v * 2, 0, v * 2)
+	end)
+	gTrigCore:Slider("Max Distance", 50, 1500, 400, "m", function(v) State.TriggerMaxDistance = v end)
+	gTrigCore:Toggle("Show Target HUD", true, function(s) State.TargetHUD = s end, {Gear = false})
+
+	local gTrigHit = SubTrig:AddGroupbox("Left", "🦴", "Triggerbot Hitboxes")
+	gTrigHit:Toggle("Target Head", true, function(s) State.TriggerHitHead = s end, {Gear = false})
+	gTrigHit:Toggle("Target Neck", true, function(s) State.TriggerHitNeck = s end, {Gear = false})
+	gTrigHit:Toggle("Target Upper Body", true, function(s) State.TriggerHitUpperBody = s end, {Gear = false})
+	gTrigHit:Toggle("Target Lower Body", false, function(s) State.TriggerHitLowerBody = s end, {Gear = false})
+	gTrigHit:Toggle("Target Full Body", true, function(s) State.TriggerHitFullBody = s end, {Gear = false})
+
+	local gTrigFilt = SubTrig:AddGroupbox("Right", "▼", "Triggerbot Filters")
+	gTrigFilt:Toggle("Filter Target Players", true, function(s) State.TriggerFilterPlayers = s end, {Gear = false})
+	gTrigFilt:Toggle("Filter Target NPC", true, function(s) State.TriggerFilterNPC = s end, {Gear = false})
+	gTrigFilt:Toggle("Filter Target Friends", false, function(s) State.TriggerFilterFriends = s end, {Gear = false})
+	gTrigFilt:Toggle("Filter Ignore Dead", true, function(s) State.TriggerIgnoreDead = s end, {Gear = false})
+	gTrigFilt:Toggle("Filter Ignore Rolling", false, function(s) State.TriggerIgnoreRolling = s end, {Gear = false})
+	gTrigFilt:Toggle("Filter Ignore Invisible", true, function(s) State.TriggerIgnoreInvisible = s end, {Gear = false})
 end
 
--- 2. VISUALS
+-- ============================================================================
+-- 2. VISUALS (INKL. FULL RADAR & ARROWS SPECS)
+-- ============================================================================
 do
 	local CatVisuals = CreateCategory("👁", "Visuals")
 
@@ -1634,21 +1934,77 @@ do
 	end, {Gear = true})
 	gWorld:Slider("Time of Day", 0, 24, 14, "h", function(v) Svc.Lighting.ClockTime = v end)
 
+	-- ========================================================================
+	-- SUB-TAB 4: RADAR (KOMPLETT NACH SPEZIFIKATION)
+	-- ========================================================================
 	local SubRadar = CatVisuals:AddSubTab("◎", "Radar")
-	local gRad = SubRadar:AddGroupbox("Left", "◎", "2D Radar Overlay")
-	gRad:Toggle("Enable 2D Radar", false, function(s)
+	local gRadLeft = SubRadar:AddGroupbox("Left", "◎", "Radar Settings")
+	gRadLeft:Toggle("Enable Radar", false, function(s)
 		State.ShowRadar = s
 		UI.radarFrame.Visible = s and not State.Streamproof
 	end, {Gear = true})
-	gRad:Slider("Radar Zoom Range", 40, 400, 140, "m", function(v) State.RadarRange = v end)
+	gRadLeft:Toggle("Show Players", true, function(s) State.RadarShowPlayers = s end, {Gear = false})
+	gRadLeft:Toggle("Show NPC", true, function(s) State.RadarShowNPC = s end, {Gear = false})
+	gRadLeft:Toggle("Show Dead", false, function(s) State.RadarShowDead = s end, {Gear = false})
+	gRadLeft:Toggle("Show Names", true, function(s) State.RadarShowNames = s end, {Gear = false})
+	gRadLeft:Toggle("Show Distance", true, function(s) State.RadarShowDistance = s end, {Gear = false})
 
+	local gRadRight = SubRadar:AddGroupbox("Right", "⚙", "Radar Dimensions & Zoom")
+	gRadRight:Slider("Adjustable Range", 30, 600, 150, "m", function(v) State.RadarRange = v end)
+	gRadRight:Slider("Adjustable Width", 100, 350, 175, "px", function(v)
+		State.RadarWidth = v
+		UI.radarFrame.Size = UDim2.new(0, State.RadarWidth, 0, State.RadarHeight)
+	end)
+	gRadRight:Slider("Adjustable Height", 100, 350, 175, "px", function(v)
+		State.RadarHeight = v
+		UI.radarFrame.Size = UDim2.new(0, State.RadarWidth, 0, State.RadarHeight)
+	end)
+	gRadRight:Slider("Adjustable Zoom", 0.5, 3.0, 1.0, "x", function(v) State.RadarZoom = v end, 1)
+	gRadRight:Slider("Adjustable Transparency", 0, 90, 10, "%", function(v)
+		State.RadarTransparency = v
+		UI.radarFrame.BackgroundTransparency = v / 100
+	end)
+
+	-- ========================================================================
+	-- SUB-TAB 5: ARROWS (KOMPLETT NACH SPEZIFIKATION)
+	-- ========================================================================
 	local SubArrows = CatVisuals:AddSubTab("▲", "Arrows")
-	local gArr = SubArrows:AddGroupbox("Left", "▲", "Off-Screen Arrows")
-	gArr:Toggle("Off-Screen Arrows", false, function(s) State.ESPOffScreen = s end, {Gear = true})
-	gArr:Slider("Arrow Circle Radius", 15, 48, 38, "%", function(v) State.ArrowRadius = v end)
+	local gArrLeft = SubArrows:AddGroupbox("Left", "▲", "Off-Screen Arrows")
+	gArrLeft:Toggle("Enable Arrows", false, function(s) State.ESPOffScreen = s end, {Gear = true})
+	gArrLeft:Toggle("Show Players", true, function(s) State.ArrowShowPlayers = s end, {Gear = false})
+	gArrLeft:Toggle("Show NPC", true, function(s) State.ArrowShowNPC = s end, {Gear = false})
+	gArrLeft:Toggle("Show Dead", false, function(s) State.ArrowShowDead = s end, {Gear = false})
+	gArrLeft:Toggle("Show Names", true, function(s) State.ArrowShowNames = s end, {Gear = false})
+	gArrLeft:Toggle("Show Distance", true, function(s) State.ArrowShowDistance = s end, {Gear = false})
+	gArrLeft:Toggle("Pulse", true, function(s) State.ArrowPulse = s end, {Gear = false})
+	gArrLeft:Toggle("Dynamic Size", true, function(s) State.ArrowDynamicSize = s end, {Gear = false})
+	gArrLeft:Dropdown("Weapon Display", {
+		"Weapon Name & Icon",
+		"Weapon Icon",
+		"Weapon Name",
+		"Off"
+	}, 1, function(val) State.ArrowWeaponMode = val end)
+	gArrLeft:Dropdown("Arrow Style", {
+		"Arrow Style New",
+		"Arrow Style Triangle",
+		"Arrow Style Solid"
+	}, 1, function(val) State.ArrowStyle = val end)
+
+	local gArrRight = SubArrows:AddGroupbox("Right", "🎨", "Distance Colors & Sizing")
+	gArrRight:ColorRow("Distance Color Close", State.ArrowColClose, function(c) State.ArrowColClose = c end)
+	gArrRight:ColorRow("Distance Color Mid", State.ArrowColMid, function(c) State.ArrowColMid = c end)
+	gArrRight:ColorRow("Distance Color Far", State.ArrowColFar, function(c) State.ArrowColFar = c end)
+	gArrRight:Slider("Close Distance in m", 5, 100, 25, "m", function(v) State.ArrowCloseDist = v end)
+	gArrRight:Slider("Far Distance in m", 80, 1000, 250, "m", function(v) State.ArrowFarDist = v end)
+	gArrRight:Toggle("Fade By Distance", true, function(s) State.ArrowFadeByDist = s end, {Gear = false})
+	gArrRight:Slider("FOV Size", 10, 48, 38, "%", function(v) State.ArrowFOVSize = v end)
+	gArrRight:Slider("Arrow & Icon Size", 10, 32, 16, "px", function(v) State.ArrowSize = v end)
+	gArrRight:Slider("Max Distance", 50, 2000, 600, "m", function(v) State.ArrowMaxDist = v end)
 end
 
+-- ============================================================================
 -- 3. PLAYER
+-- ============================================================================
 do
 	local CatPlayer = CreateCategory("👤", "Player")
 
@@ -1734,7 +2090,9 @@ do
 	})
 end
 
+-- ============================================================================
 -- 4. VEHICLE
+-- ============================================================================
 do
 	local CatVeh = CreateCategory("🚗", "Vehicle")
 
@@ -1817,7 +2175,9 @@ do
 	gTune:Slider("Suspension Height", 1, 15, 3, "m", function() end)
 end
 
+-- ============================================================================
 -- 5. TELEPORT
+-- ============================================================================
 do
 	local CatTP = CreateCategory("📍", "Teleport")
 	local Sub1 = CatTP:AddSubTab("📍", "Waypoints")
@@ -1835,7 +2195,9 @@ do
 	end)
 end
 
+-- ============================================================================
 -- 6. ONLINE
+-- ============================================================================
 do
 	local CatOnline = CreateCategory("🌐", "Online")
 
@@ -1865,7 +2227,7 @@ do
 		pad.PaddingLeft = UDim.new(0, 8) pad.PaddingRight = UDim.new(0, 8)
 
 		local q = string.lower(searchBox.Text)
-		local targets = GetCombatTargets()
+		local targets = GetAllEntities()
 		if #targets == 0 then
 			table.insert(targets, {Name = player.DisplayName, ServerIndex = 1, Char = Env.CachedChar})
 		end
@@ -2002,7 +2364,7 @@ do
 	gSrv:Toggle("Fuck All Vehicles", true, function(s) State.FuckAllVehicles = s end, {Gear = false})
 	gSrv:ButtonRow({
 		{Icon = "💀", Text = "Kill All", OnClick = function()
-			for _, t in ipairs(GetCombatTargets()) do
+			for _, t in ipairs(GetAllEntities()) do
 				local h = t.Char and t.Char:FindFirstChildOfClass("Humanoid")
 				if h then h.Health = 0 end
 			end
@@ -2026,11 +2388,13 @@ do
 	})
 end
 
+-- ============================================================================
 -- 7. SPAWNER
+-- ============================================================================
 do
 	local CatSpawn = CreateCategory("🪄", "Spawner")
 	local Sub1 = CatSpawn:AddSubTab("🪄", "Dummies")
-	local gSp = Sub1:AddGroupbox("Left", "🪄", "NPC Dummy Spawner")
+	local gSp = Sub1:AddGroupbox("Left", "🪄", "NPC Dummy Spawner (Full R15 Hitboxes)")
 	local function spawnTestDummy()
 		if not Env.CachedRoot then return end
 		local model = Instance.new("Model", workspace)
@@ -2048,7 +2412,7 @@ do
 		if Env.rebuildOnlinePlayers then Env.rebuildOnlinePlayers() end
 		Notify("Spawner", model.Name .. " spawned!", "Success")
 	end
-	gSp:FullButton("Spawn Physics Dummy (Test ESP)", spawnTestDummy)
+	gSp:FullButton("Spawn Physics Dummy (Test ESP/Aimbot)", spawnTestDummy)
 	gSp:FullButton("Clear All Dummies", function()
 		for _, d in ipairs(Env.spawnedDummies) do if d then d:Destroy() end end
 		table.clear(Env.spawnedDummies)
@@ -2056,7 +2420,9 @@ do
 	end)
 end
 
+-- ============================================================================
 -- 8. RESOURCES
+-- ============================================================================
 do
 	local CatRes = CreateCategory("📦", "Resources")
 	local Sub1 = CatRes:AddSubTab("📦", "World Tools")
@@ -2077,7 +2443,9 @@ do
 	end)
 end
 
+-- ============================================================================
 -- 9. EVENTS
+-- ============================================================================
 do
 	local CatEv = CreateCategory("⚡", "Events")
 	local Sub1 = CatEv:AddSubTab("⚡", "RemoteSpy")
@@ -2090,7 +2458,9 @@ do
 	spyLbl.TextYAlignment = Enum.TextYAlignment.Top spyLbl.TextWrapped = true corner(spyLbl, 5)
 end
 
+-- ============================================================================
 -- 10. EXECUTOR
+-- ============================================================================
 do
 	local CatEx = CreateCategory(">_", "Executor")
 	local SubLua = CatEx:AddSubTab("💻", "Lua Executor")
@@ -2213,7 +2583,9 @@ do
 	gBm:FullButton("Stop Audio", function() UI.boomboxSound:Stop() end)
 end
 
+-- ============================================================================
 -- 11. MISCELLANEOUS
+-- ============================================================================
 do
 	local CatMisc = CreateCategory("⚙", "Miscellaneous")
 	local SubGen = CatMisc:AddSubTab("❖", "General")
@@ -2289,7 +2661,7 @@ do
 		if Env.CachedRoot and State.SafeGroundPos then Env.CachedRoot.CFrame = State.SafeGroundPos end
 	end)
 	gBinds:KeybindRow("Quick Select Player", "M3", nil, function()
-		local list = GetCombatTargets()
+		local list = GetAllEntities()
 		if #list > 0 then
 			State.SelectedTarget = list[1]
 			Notify("Quick Select", "Locked onto " .. list[1].Name, "Success")
@@ -2297,7 +2669,9 @@ do
 	end)
 end
 
+-- ============================================================================
 -- 12. CONFIGS
+-- ============================================================================
 do
 	local CatCfg = CreateCategory("📁", "Configs")
 	local SubMgr = CatCfg:AddSubTab("📁", "Manager")
@@ -2482,15 +2856,13 @@ do
 	updateRightConfigInfo()
 end
 
--- Direkt beim Start "Visuals" aktivieren (oder Combat als Fallback)
-if Env.Categories[2] then
-	Env.Categories[2].Activate()
-elseif Env.Categories[1] then
+-- Direkt beim Start Combat aktivieren
+if Env.Categories[1] then
 	Env.Categories[1].Activate()
 end
 
 -- ============================================================================
--- ZERO-LAG ESP MIT BOTTOM-HEALTHBAR & PINKEM SKELETT
+-- ZERO-LAG ESP, RADAR & ARROWS ENGINE
 -- ============================================================================
 Env.rebuildOnlinePlayers()
 TrackConn(Svc.Players.PlayerAdded:Connect(Env.rebuildOnlinePlayers))
@@ -2584,13 +2956,23 @@ local function CreateESPNode(id)
 	node.Tracer.BorderSizePixel = 0
 	node.Tracer.Visible = false
 
+	-- Off-Screen Arrow + Sub-Info Label
 	node.Arrow = Instance.new("TextLabel", node.Folder)
 	node.Arrow.AnchorPoint = Vector2.new(0.5, 0.5)
-	node.Arrow.Size = UDim2.new(0, 22, 0, 22)
+	node.Arrow.Size = UDim2.new(0, 26, 0, 26)
 	node.Arrow.BackgroundTransparency = 1
 	node.Arrow.Text = "▲"
 	node.Arrow.Font = Enum.Font.GothamBold
 	node.Arrow.Visible = false
+
+	node.ArrowInfo = Instance.new("TextLabel", node.Folder)
+	node.ArrowInfo.AnchorPoint = Vector2.new(0.5, 0)
+	node.ArrowInfo.Size = UDim2.new(0, 140, 0, 28)
+	node.ArrowInfo.BackgroundTransparency = 1
+	node.ArrowInfo.Font = Enum.Font.GothamBold
+	node.ArrowInfo.TextSize = 10
+	node.ArrowInfo.TextStrokeTransparency = 0.35
+	node.ArrowInfo.Visible = false
 
 	for i = 1, 14 do
 		local b = Instance.new("Frame", node.Folder)
@@ -2618,6 +3000,7 @@ local function HideESPNode(node)
 	node.HeadTag.Visible = false
 	node.Tracer.Visible = false
 	node.Arrow.Visible = false
+	node.ArrowInfo.Visible = false
 	for i = 1, 14 do node.Bones[i].Visible = false end
 	node.Chams.Enabled = false
 end
@@ -2670,6 +3053,25 @@ local function SetLine(frame, x1, y1, x2, y2, col, thick)
 	frame.Visible = true
 end
 
+local function GetArrowDistanceColor(distM)
+	local cClose = State.ArrowColClose
+	local cMid = State.ArrowColMid
+	local cFar = State.ArrowColFar
+	local dClose = State.ArrowCloseDist
+	local dFar = math.max(dClose + 10, State.ArrowFarDist)
+	local dMid = (dClose + dFar) * 0.5
+
+	if distM <= dClose then
+		return cClose
+	elseif distM <= dMid then
+		local t = (distM - dClose) / math.max(dMid - dClose, 1)
+		return cClose:Lerp(cMid, math.clamp(t, 0, 1))
+	else
+		local t = (distM - dMid) / math.max(dFar - dMid, 1)
+		return cMid:Lerp(cFar, math.clamp(t, 0, 1))
+	end
+end
+
 local function RenderSmoothESP()
 	if not State.MasterESP or State.Streamproof then
 		for _, node in pairs(Env.ESPPool) do HideESPNode(node) end
@@ -2678,11 +3080,19 @@ local function RenderSmoothESP()
 
 	local seenIds = {}
 	local vp = camera.ViewportSize
+	local vpCenter = Vector2.new(vp.X * 0.5, vp.Y * 0.5)
 	local thick = State.ESPThickness
 	local strokeTrans = 1 - (State.TextOutline / 100)
 	local tracerStart = Vector2.new(vp.X * 0.5, vp.Y - 8)
 
-	for _, t in ipairs(GetCombatTargets()) do
+	for _, t in ipairs(GetAllEntities()) do
+		if (t.IsNPC and not State.ESPShowNPCs) or (not t.IsNPC and not State.ESPShowPlayers) then
+			continue
+		end
+		if t.IsFriend and not State.ESPShowFriends then
+			continue
+		end
+
 		seenIds[t.Id] = true
 		local node = Env.ESPPool[t.Id] or CreateESPNode(t.Id)
 		local char = t.Char
@@ -2690,170 +3100,248 @@ local function RenderSmoothESP()
 		local hrp = char and char:FindFirstChild("HumanoidRootPart")
 		local head = char and char:FindFirstChild("Head")
 
-		if hum and hrp and (hum.Health > 0 or State.ESPShowDead) then
+		if hum and hrp and (hum.Health > 0 or State.ESPShowDead or State.ArrowShowDead) then
 			local dist = math.floor((camera.CFrame.Position - hrp.Position).Magnitude / 3.2)
-			if dist <= State.MaxESPDistance then
-				if State.HitboxExpander and not t.IsNPC then
-					hrp.Size = Vector3.new(State.HitboxSize, State.HitboxSize, State.HitboxSize)
-					hrp.Transparency = State.HitboxTransparency / 100
-					hrp.CanCollide = false
-				end
 
-				local boxCol = t.TeamColor or State.ColBox
-				local skelCol = t.TeamColor or State.ColSkeleton
+			if State.HitboxExpander and not t.IsNPC then
+				hrp.Size = Vector3.new(State.HitboxSize, State.HitboxSize, State.HitboxSize)
+				hrp.Transparency = State.HitboxTransparency / 100
+				hrp.CanCollide = false
+			end
 
-				if State.ESPChams then
-					node.Chams.Adornee = char
-					node.Chams.FillColor = State.ColChams
-					node.Chams.FillTransparency = State.ChamsFillTrans / 100
-					node.Chams.OutlineColor = Color3.new(1, 1, 1)
-					node.Chams.Enabled = true
-				else
-					node.Chams.Enabled = false
-				end
+			local boxCol = t.TeamColor or State.ColBox
+			local skelCol = t.TeamColor or State.ColSkeleton
 
-				local bx, by, bw, bh = Get2DBoundingBox(hrp)
-				if bx then
-					node.Arrow.Visible = false
+			if State.ESPChams and dist <= State.MaxESPDistance then
+				node.Chams.Adornee = char
+				node.Chams.FillColor = State.ColChams
+				node.Chams.FillTransparency = State.ChamsFillTrans / 100
+				node.Chams.OutlineColor = Color3.new(1, 1, 1)
+				node.Chams.Enabled = true
+			else
+				node.Chams.Enabled = false
+			end
 
-					if State.ESPBox2D then
-						if State.ESPBoxStyle == "Corner" then
-							node.BoxMain.Visible = false
-							local cLenW = math.max(4, math.floor(bw * 0.25))
-							local cLenH = math.max(4, math.floor(bh * 0.22))
-							local c = node.Corners
-							c[1].Position = UDim2.new(0, bx, 0, by) c[1].Size = UDim2.new(0, cLenW, 0, thick)
-							c[2].Position = UDim2.new(0, bx, 0, by) c[2].Size = UDim2.new(0, thick, 0, cLenH)
-							c[3].Position = UDim2.new(0, bx + bw - cLenW, 0, by) c[3].Size = UDim2.new(0, cLenW, 0, thick)
-							c[4].Position = UDim2.new(0, bx + bw - thick, 0, by) c[4].Size = UDim2.new(0, thick, 0, cLenH)
-							c[5].Position = UDim2.new(0, bx, 0, by + bh - thick) c[5].Size = UDim2.new(0, cLenW, 0, thick)
-							c[6].Position = UDim2.new(0, bx, 0, by + bh - cLenH) c[6].Size = UDim2.new(0, thick, 0, cLenH)
-							c[7].Position = UDim2.new(0, bx + bw - cLenW, 0, by + bh - thick) c[7].Size = UDim2.new(0, cLenW, 0, thick)
-							c[8].Position = UDim2.new(0, bx + bw - thick, 0, by + bh - cLenH) c[8].Size = UDim2.new(0, thick, 0, cLenH)
-							for i = 1, 8 do c[i].BackgroundColor3 = boxCol c[i].Visible = true end
-						else
-							for i = 1, 8 do node.Corners[i].Visible = false end
-							node.BoxMain.Position = UDim2.new(0, bx, 0, by)
-							node.BoxMain.Size = UDim2.new(0, bw, 0, bh)
-							node.BoxStroke.Color = boxCol
-							node.BoxStroke.Thickness = thick
-							node.BoxMain.Visible = true
-						end
-					else
+			local bx, by, bw, bh = Get2DBoundingBox(hrp)
+			if bx and dist <= State.MaxESPDistance and (hum.Health > 0 or State.ESPShowDead) then
+				node.Arrow.Visible = false
+				node.ArrowInfo.Visible = false
+
+				if State.ESPBox2D then
+					if State.ESPBoxStyle == "Corner" then
 						node.BoxMain.Visible = false
+						local cLenW = math.max(4, math.floor(bw * 0.25))
+						local cLenH = math.max(4, math.floor(bh * 0.22))
+						local c = node.Corners
+						c[1].Position = UDim2.new(0, bx, 0, by) c[1].Size = UDim2.new(0, cLenW, 0, thick)
+						c[2].Position = UDim2.new(0, bx, 0, by) c[2].Size = UDim2.new(0, thick, 0, cLenH)
+						c[3].Position = UDim2.new(0, bx + bw - cLenW, 0, by) c[3].Size = UDim2.new(0, cLenW, 0, thick)
+						c[4].Position = UDim2.new(0, bx + bw - thick, 0, by) c[4].Size = UDim2.new(0, thick, 0, cLenH)
+						c[5].Position = UDim2.new(0, bx, 0, by + bh - thick) c[5].Size = UDim2.new(0, cLenW, 0, thick)
+						c[6].Position = UDim2.new(0, bx, 0, by + bh - cLenH) c[6].Size = UDim2.new(0, thick, 0, cLenH)
+						c[7].Position = UDim2.new(0, bx + bw - cLenW, 0, by + bh - thick) c[7].Size = UDim2.new(0, cLenW, 0, thick)
+						c[8].Position = UDim2.new(0, bx + bw - thick, 0, by + bh - cLenH) c[8].Size = UDim2.new(0, thick, 0, cLenH)
+						for i = 1, 8 do c[i].BackgroundColor3 = boxCol c[i].Visible = true end
+					else
 						for i = 1, 8 do node.Corners[i].Visible = false end
+						node.BoxMain.Position = UDim2.new(0, bx, 0, by)
+						node.BoxMain.Size = UDim2.new(0, bw, 0, bh)
+						node.BoxStroke.Color = boxCol
+						node.BoxStroke.Thickness = thick
+						node.BoxMain.Visible = true
 					end
+				else
+					node.BoxMain.Visible = false
+					for i = 1, 8 do node.Corners[i].Visible = false end
+				end
 
-					local bottomCursorY = by + bh + 4
-					if State.ESPHealthBar then
-						local hpPct = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
-						if State.HealthBarPos == "Bottom" then
-							local barW = math.clamp(bw * 0.85, 42, 120)
-							node.HealthBg.Position = UDim2.new(0, bx + (bw - barW) * 0.5, 0, bottomCursorY)
-							node.HealthBg.Size = UDim2.new(0, barW, 0, 4)
-							node.HealthFill.Position = UDim2.new(0, 0, 0, 0)
-							node.HealthFill.Size = UDim2.new(hpPct, 0, 1, 0)
-							bottomCursorY = bottomCursorY + 6
-						else
-							node.HealthBg.Position = UDim2.new(0, bx - 6, 0, by)
-							node.HealthBg.Size = UDim2.new(0, 3, 0, bh)
-							node.HealthFill.Position = UDim2.new(0, 0, 1 - hpPct, 0)
-							node.HealthFill.Size = UDim2.new(1, 0, hpPct, 0)
-						end
-						node.HealthFill.BackgroundColor3 = State.ColHealth
-						node.HealthBg.Visible = true
-					else
-						node.HealthBg.Visible = false
-					end
-
-					if State.ESPArmorBar then
+				local bottomCursorY = by + bh + 4
+				if State.ESPHealthBar then
+					local hpPct = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
+					if State.HealthBarPos == "Bottom" then
 						local barW = math.clamp(bw * 0.85, 42, 120)
-						node.ArmorBg.Position = UDim2.new(0, bx + (bw - barW) * 0.5, 0, bottomCursorY)
-						node.ArmorBg.Size = UDim2.new(0, barW, 0, 3)
-						node.ArmorFill.Size = UDim2.new(1, 0, 1, 0)
-						node.ArmorFill.BackgroundColor3 = State.ColArmor
-						node.ArmorBg.Visible = true
-						bottomCursorY = bottomCursorY + 5
+						node.HealthBg.Position = UDim2.new(0, bx + (bw - barW) * 0.5, 0, bottomCursorY)
+						node.HealthBg.Size = UDim2.new(0, barW, 0, 4)
+						node.HealthFill.Position = UDim2.new(0, 0, 0, 0)
+						node.HealthFill.Size = UDim2.new(hpPct, 0, 1, 0)
+						bottomCursorY = bottomCursorY + 6
 					else
-						node.ArmorBg.Visible = false
+						node.HealthBg.Position = UDim2.new(0, bx - 6, 0, by)
+						node.HealthBg.Size = UDim2.new(0, 3, 0, bh)
+						node.HealthFill.Position = UDim2.new(0, 0, 1 - hpPct, 0)
+						node.HealthFill.Size = UDim2.new(1, 0, hpPct, 0)
 					end
+					node.HealthFill.BackgroundColor3 = State.ColHealth
+					node.HealthBg.Visible = true
+				else
+					node.HealthBg.Visible = false
+				end
 
-					if State.ESPDistance then
-						node.DistLabel.Text = string.format("%dm", dist)
-						node.DistLabel.TextColor3 = State.ColDist
-						node.DistLabel.TextStrokeTransparency = strokeTrans
-						node.DistLabel.Position = UDim2.new(0, bx + bw * 0.5 - 80, 0, bottomCursorY)
-						node.DistLabel.Size = UDim2.new(0, 160, 0, 13)
-						node.DistLabel.Visible = true
-						bottomCursorY = bottomCursorY + 12
-					else
-						node.DistLabel.Visible = false
-					end
+				if State.ESPArmorBar then
+					local barW = math.clamp(bw * 0.85, 42, 120)
+					node.ArmorBg.Position = UDim2.new(0, bx + (bw - barW) * 0.5, 0, bottomCursorY)
+					node.ArmorBg.Size = UDim2.new(0, barW, 0, 3)
+					node.ArmorFill.Size = UDim2.new(1, 0, 1, 0)
+					node.ArmorFill.BackgroundColor3 = State.ColArmor
+					node.ArmorBg.Visible = true
+					bottomCursorY = bottomCursorY + 5
+				else
+					node.ArmorBg.Visible = false
+				end
 
-					if State.ESPNametags then
-						node.NameLabel.Text = string.lower(t.Name)
-						node.NameLabel.TextColor3 = State.ColName
-						node.NameLabel.TextStrokeTransparency = strokeTrans
-						node.NameLabel.Position = UDim2.new(0, bx + bw * 0.5 - 80, 0, bottomCursorY)
-						node.NameLabel.Size = UDim2.new(0, 160, 0, 13)
-						node.NameLabel.Visible = true
-					else
-						node.NameLabel.Visible = false
-					end
+				if State.ESPDistance then
+					node.DistLabel.Text = string.format("%dm", dist)
+					node.DistLabel.TextColor3 = State.ColDist
+					node.DistLabel.TextStrokeTransparency = strokeTrans
+					node.DistLabel.Position = UDim2.new(0, bx + bw * 0.5 - 80, 0, bottomCursorY)
+					node.DistLabel.Size = UDim2.new(0, 160, 0, 13)
+					node.DistLabel.Visible = true
+					bottomCursorY = bottomCursorY + 12
+				else
+					node.DistLabel.Visible = false
+				end
 
-					if State.ESPWeapon and head then
-						local hPos, hVis = camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
-						if hVis then
-							local tool = char:FindFirstChildOfClass("Tool")
-							node.HeadTag.Text = tool and tool.Name or ("ID: " .. tostring(t.ServerIndex or 1))
-							node.HeadTag.TextColor3 = State.ColLook
-							node.HeadTag.Position = UDim2.new(0, hPos.X - 60, 0, hPos.Y - 12)
-							node.HeadTag.Size = UDim2.new(0, 120, 0, 12)
-							node.HeadTag.Visible = true
-						else
-							node.HeadTag.Visible = false
-						end
+				if State.ESPNametags then
+					node.NameLabel.Text = string.lower(t.Name)
+					node.NameLabel.TextColor3 = State.ColName
+					node.NameLabel.TextStrokeTransparency = strokeTrans
+					node.NameLabel.Position = UDim2.new(0, bx + bw * 0.5 - 80, 0, bottomCursorY)
+					node.NameLabel.Size = UDim2.new(0, 160, 0, 13)
+					node.NameLabel.Visible = true
+				else
+					node.NameLabel.Visible = false
+				end
+
+				if State.ESPWeapon and head then
+					local hPos, hVis = camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+					if hVis then
+						local tool = char:FindFirstChildOfClass("Tool")
+						node.HeadTag.Text = tool and tool.Name or ("ID: " .. tostring(t.ServerIndex or 1))
+						node.HeadTag.TextColor3 = State.ColLook
+						node.HeadTag.Position = UDim2.new(0, hPos.X - 60, 0, hPos.Y - 12)
+						node.HeadTag.Size = UDim2.new(0, 120, 0, 12)
+						node.HeadTag.Visible = true
 					else
 						node.HeadTag.Visible = false
 					end
+				else
+					node.HeadTag.Visible = false
+				end
 
-					if State.ESPTracers then
-						SetLine(node.Tracer, tracerStart.X, tracerStart.Y, bx + bw * 0.5, by + bh, State.ColTracer, thick)
-					else
-						node.Tracer.Visible = false
-					end
+				if State.ESPTracers then
+					SetLine(node.Tracer, tracerStart.X, tracerStart.Y, bx + bw * 0.5, by + bh, State.ColTracer, thick)
+				else
+					node.Tracer.Visible = false
+				end
 
-					if State.ESPSkeleton then
-						local isR15 = char:FindFirstChild("UpperTorso") ~= nil
-						local bonePairs = isR15 and R15_BONES or R6_BONES
-						for i = 1, 14 do
-							local pair = bonePairs[i]
-							if pair then
-								local p1 = char:FindFirstChild(pair[1])
-								local p2 = char:FindFirstChild(pair[2])
-								if p1 and p2 then
-									local s1, o1 = camera:WorldToViewportPoint(p1.Position)
-									local s2, o2 = camera:WorldToViewportPoint(p2.Position)
-									if o1 and o2 then
-										SetLine(node.Bones[i], s1.X, s1.Y, s2.X, s2.Y, skelCol, thick)
-									else
-										node.Bones[i].Visible = false
-									end
+				if State.ESPSkeleton then
+					local isR15 = char:FindFirstChild("UpperTorso") ~= nil
+					local bonePairs = isR15 and R15_BONES or R6_BONES
+					for i = 1, 14 do
+						local pair = bonePairs[i]
+						if pair then
+							local p1 = char:FindFirstChild(pair[1])
+							local p2 = char:FindFirstChild(pair[2])
+							if p1 and p2 then
+								local s1, o1 = camera:WorldToViewportPoint(p1.Position)
+								local s2, o2 = camera:WorldToViewportPoint(p2.Position)
+								if o1 and o2 then
+									SetLine(node.Bones[i], s1.X, s1.Y, s2.X, s2.Y, skelCol, thick)
 								else
 									node.Bones[i].Visible = false
 								end
 							else
 								node.Bones[i].Visible = false
 							end
+						else
+							node.Bones[i].Visible = false
 						end
-					else
-						for i = 1, 14 do node.Bones[i].Visible = false end
 					end
 				else
-					HideESPNode(node)
+					for i = 1, 14 do node.Bones[i].Visible = false end
 				end
 			else
-				HideESPNode(node)
+				-- Off-Screen Bereich: Boxen verstecken und FULL-SPEC ARROWS prüfen
+				node.BoxMain.Visible = false
+				for i = 1, 8 do node.Corners[i].Visible = false end
+				node.HealthBg.Visible = false
+				node.ArmorBg.Visible = false
+				node.DistLabel.Visible = false
+				node.NameLabel.Visible = false
+				node.HeadTag.Visible = false
+				node.Tracer.Visible = false
+				for i = 1, 14 do node.Bones[i].Visible = false end
+
+				local allowArrow = State.ESPOffScreen
+					and dist <= State.ArrowMaxDist
+					and ((t.IsNPC and State.ArrowShowNPC) or (not t.IsNPC and State.ArrowShowPlayers))
+					and (hum.Health > 0 or State.ArrowShowDead)
+
+				if allowArrow then
+					local rel = camera.CFrame:PointToObjectSpace(hrp.Position)
+					local angle = math.atan2(-rel.Y, rel.X)
+					local dir = Vector2.new(math.cos(angle), math.sin(angle))
+					local radius = math.min(vp.X, vp.Y) * (State.ArrowFOVSize / 100)
+					local arrowPos = vpCenter + dir * radius
+
+					local arrCol = GetArrowDistanceColor(dist)
+					local dynScale = State.ArrowDynamicSize and math.clamp(1.25 - (dist / math.max(State.ArrowMaxDist, 1)) * 0.55, 0.65, 1.35) or 1
+					local finalSize = math.floor(State.ArrowSize * dynScale)
+
+					local alpha = 0
+					if State.ArrowFadeByDist then
+						alpha = math.clamp((dist / math.max(State.ArrowMaxDist, 1)) * 0.65, 0, 0.75)
+					end
+					if State.ArrowPulse then
+						alpha = math.clamp(alpha + (math.sin(os.clock() * 6) * 0.5 + 0.5) * 0.35, 0, 0.85)
+					end
+
+					if State.ArrowStyle == "Arrow Style New" then
+						node.Arrow.Text = "➤"
+						node.Arrow.Rotation = math.deg(angle)
+					elseif State.ArrowStyle == "Arrow Style Triangle" then
+						node.Arrow.Text = "△"
+						node.Arrow.Rotation = math.deg(angle) + 90
+					else
+						node.Arrow.Text = "▲"
+						node.Arrow.Rotation = math.deg(angle) + 90
+					end
+
+					node.Arrow.Position = UDim2.new(0, arrowPos.X, 0, arrowPos.Y)
+					node.Arrow.TextSize = finalSize
+					node.Arrow.TextColor3 = arrCol
+					node.Arrow.TextTransparency = alpha
+					node.Arrow.Visible = true
+
+					local infoParts = {}
+					if State.ArrowShowNames then table.insert(infoParts, t.Name) end
+					if State.ArrowShowDistance then table.insert(infoParts, string.format("[%dm]", dist)) end
+
+					if State.ArrowWeaponMode ~= "Off" then
+						local tool = char:FindFirstChildOfClass("Tool")
+						local wName = tool and tool.Name or "Unarmed"
+						if State.ArrowWeaponMode == "Weapon Icon" then
+							table.insert(infoParts, "🔫")
+						elseif State.ArrowWeaponMode == "Weapon Name" then
+							table.insert(infoParts, wName)
+						elseif State.ArrowWeaponMode == "Weapon Name & Icon" then
+							table.insert(infoParts, "🔫 " .. wName)
+						end
+					end
+
+					if #infoParts > 0 then
+						node.ArrowInfo.Text = table.concat(infoParts, " ")
+						node.ArrowInfo.TextColor3 = arrCol
+						node.ArrowInfo.TextTransparency = alpha
+						node.ArrowInfo.Position = UDim2.new(0, arrowPos.X, 0, arrowPos.Y + finalSize * 0.65)
+						node.ArrowInfo.Visible = true
+					else
+						node.ArrowInfo.Visible = false
+					end
+				else
+					node.Arrow.Visible = false
+					node.ArrowInfo.Visible = false
+				end
 			end
 		else
 			HideESPNode(node)
@@ -2870,59 +3358,183 @@ local function RenderSmoothESP()
 end
 
 -- ============================================================================
--- AIMBOT & HAUPTSCHLEIFEN
+-- FULL-SPEC TARGETING ENGINE (AIMBOT, SILENT AIM & TRIGGERBOT)
 -- ============================================================================
-local BONE_LIST = {"Head", "UpperTorso", "HumanoidRootPart", "LowerTorso"}
+local function GetEnabledAimbotBones()
+	local list = {}
+	if State.AimHitHead then table.insert(list, "Head") end
+	if State.AimHitNeck then table.insert(list, "UpperTorso") end
+	if State.AimHitUpperBody then table.insert(list, "HumanoidRootPart") table.insert(list, "UpperTorso") end
+	if State.AimHitPelvis then table.insert(list, "LowerTorso") table.insert(list, "Torso") end
+	if State.AimHitRightCalf then table.insert(list, "RightLowerLeg") table.insert(list, "Right Leg") end
+	if State.AimHitLeftCalf then table.insert(list, "LeftLowerLeg") table.insert(list, "Left Leg") end
+	if #list == 0 then table.insert(list, "Head") table.insert(list, "HumanoidRootPart") end
+	return list
+end
 
-local function getClosestTargetInFOV()
+local function GetEnabledSilentBones()
+	local list = {}
+	if State.SilentHitHead then table.insert(list, "Head") end
+	if State.SilentHitNeck then table.insert(list, "UpperTorso") end
+	if State.SilentHitPelvis then table.insert(list, "LowerTorso") table.insert(list, "HumanoidRootPart") end
+	if State.SilentHitLeftHand then table.insert(list, "LeftHand") table.insert(list, "Left Arm") end
+	if State.SilentHitRightHand then table.insert(list, "RightHand") table.insert(list, "Right Arm") end
+	if State.SilentHitLeftFoot then table.insert(list, "LeftFoot") table.insert(list, "Left Leg") end
+	if State.SilentHitRightFoot then table.insert(list, "RightFoot") table.insert(list, "Right Leg") end
+	if #list == 0 then table.insert(list, "Head") table.insert(list, "HumanoidRootPart") end
+	return list
+end
+
+local function PassesCombatFilters(t, hum, hrp, head, isSilent)
+	local fPlayers = isSilent and State.SilentFilterPlayers or State.AimFilterPlayers
+	local fNPC = isSilent and State.SilentFilterNPC or State.AimFilterNPC
+	local fFriends = isSilent and State.SilentFilterFriends or State.AimFilterFriends
+	local iDead = isSilent and State.SilentIgnoreDead or State.AimIgnoreDead
+	local iRoll = isSilent and State.SilentIgnoreRolling or State.AimIgnoreRolling
+	local iInvis = isSilent and State.SilentIgnoreInvisible or State.AimIgnoreInvisible
+	local stopHp = isSilent and State.SilentStopAtHealthPct or State.AimStopAtHealthPct
+
+	if t.IsNPC and not fNPC then return false end
+	if not t.IsNPC and not fPlayers then return false end
+	if t.IsFriend and not fFriends then return false end
+	if iDead and hum.Health <= 0 then return false end
+	if stopHp > 0 and (hum.Health / math.max(hum.MaxHealth, 1)) * 100 <= stopHp then return false end
+	if iInvis and head and head.Transparency > 0.85 then return false end
+	if iRoll and hum:GetState() == Enum.HumanoidStateType.FallingDown then return false end
+	return true
+end
+
+local function FindBestCombatTarget(isSilent)
+	local maxFOV = isSilent and State.SilentFOV or State.AimFOV
+	local maxDist = isSilent and State.SilentMaxDistance or State.MaxAimDistance
+	local prioMode = isSilent and State.SilentPriority or State.AimPriority
+	local nearestBone = isSilent and State.SilentNearestBone or State.AimNearestBone
+	local boneNames = isSilent and GetEnabledSilentBones() or GetEnabledAimbotBones()
+	local wallCheck = isSilent and (not State.SilentMagicBullet) or true
+	local viewportCenter = camera.ViewportSize * 0.5
+
+	-- Target Lock Prüfung
+	local locked = isSilent and Env.LockedSilentTarget or Env.LockedAimbotTarget
+	if locked and locked.Char and locked.Char.Parent then
+		local lHum = locked.Char:FindFirstChildOfClass("Humanoid")
+		local lPart = locked.Part
+		if lHum and lHum.Health > 0 and lPart and lPart.Parent then
+			local sp, onScr = camera:WorldToViewportPoint(lPart.Position)
+			if onScr then
+				return {Part = lPart, Position = lPart.Position, ScreenPos = Vector2.new(sp.X, sp.Y), Hum = lHum, Data = locked.Data, Char = locked.Char}
+			end
+		end
+	end
+
 	local bestTarget = nil
 	local bestScore = math.huge
-	local viewportCenter = camera.ViewportSize / 2
 
-	for _, t in ipairs(GetCombatTargets()) do
+	for _, t in ipairs(GetAllEntities()) do
 		if t.Char == Env.CachedChar then continue end
-		if State.AimTeamCheck and t.Team ~= nil and t.Team == player.Team then continue end
 		local hum = t.Char:FindFirstChildOfClass("Humanoid")
 		local hrp = t.Char:FindFirstChild("HumanoidRootPart")
+		local head = t.Char:FindFirstChild("Head")
 
-		if hum and hum.Health > 0 and hrp then
-			local worldDist = (hrp.Position - camera.CFrame.Position).Magnitude
-			if worldDist > State.MaxAimDistance then continue end
+		if hum and hrp and PassesCombatFilters(t, hum, hrp, head, isSilent) then
+			local worldDist = (hrp.Position - camera.CFrame.Position).Magnitude / 3.2
+			if worldDist > maxDist then continue end
 
-			local targetPart = t.Char:FindFirstChild(State.AimTargetPart) or hrp
-			if State.ClosestBone then
-				local bestBoneDist = math.huge
-				for _, bName in ipairs(BONE_LIST) do
-					local bp = t.Char:FindFirstChild(bName)
-					if bp then
-						local sp, vis = camera:WorldToViewportPoint(bp.Position)
-						if vis then
-							local d = (Vector2.new(sp.X, sp.Y) - viewportCenter).Magnitude
-							if d < bestBoneDist then bestBoneDist = d targetPart = bp end
+			-- Besten Bone aus den aktivierten Hitbox-Toggles suchen
+			local chosenPart = nil
+			local bestBoneDist2D = math.huge
+
+			-- Wheel Override System (falls aktiviert und Ziel im Fahrzeug sitzt)
+			if not isSilent and State.AimWheelOverride and hum.SeatPart then
+				local vehModel = hum.SeatPart:FindFirstAncestorOfClass("Model")
+				if vehModel then
+					for _, p in ipairs(vehModel:GetDescendants()) do
+						if p:IsA("BasePart") and (string.find(string.lower(p.Name), "wheel") or string.find(string.lower(p.Name), "tire")) then
+							if not (State.AimSkipPoppedTires and p.Transparency > 0.7) then
+								chosenPart = p
+								break
+							end
 						end
 					end
 				end
 			end
 
-			local finalPos = targetPart.Position
-			if State.Prediction and targetPart.AssemblyLinearVelocity then
-				finalPos += targetPart.AssemblyLinearVelocity * State.PredictionFactor
+			if not chosenPart then
+				for _, bName in ipairs(boneNames) do
+					local bp = t.Char:FindFirstChild(bName)
+					if bp then
+						local sp, vis = camera:WorldToViewportPoint(bp.Position)
+						if vis then
+							local d2 = (Vector2.new(sp.X, sp.Y) - viewportCenter).Magnitude
+							if nearestBone then
+								if d2 < bestBoneDist2D then
+									bestBoneDist2D = d2
+									chosenPart = bp
+								end
+							else
+								chosenPart = bp
+								bestBoneDist2D = d2
+								break
+							end
+						end
+					end
+				end
 			end
 
-			local screenPos, onScreen = camera:WorldToViewportPoint(finalPos)
-			if onScreen then
-				local dist2D = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
-				if dist2D <= State.AimFOV then
-					if State.AimWallCheck and not IsTargetVisible(t.Char, targetPart) then continue end
-					local score = (State.AimPriority == "Distance" and worldDist) or (State.AimPriority == "Lowest HP" and hum.Health) or dist2D
-					if score < bestScore then
-						bestScore = score
-						bestTarget = {Part = targetPart, Position = finalPos, Hum = hum, Data = t}
+			if chosenPart then
+				local finalPos = chosenPart.Position
+				if not isSilent and State.AimPrediction and chosenPart.AssemblyLinearVelocity then
+					finalPos += chosenPart.AssemblyLinearVelocity * State.PredictionFactor
+				end
+
+				local screenPos, onScreen = camera:WorldToViewportPoint(finalPos)
+				if onScreen then
+					local dist2D = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
+					if dist2D <= maxFOV then
+						if wallCheck and not IsTargetVisible(t.Char, chosenPart) then
+							continue
+						end
+
+						local score = dist2D
+						if prioMode == "Nearest by Distance" then
+							score = worldDist
+						elseif prioMode == "Lowest Health" then
+							score = hum.Health
+						elseif prioMode == "Highest Threat" and Env.CachedRoot then
+							local toMe = (Env.CachedRoot.Position - hrp.Position).Unit
+							local aimThreat = hrp.CFrame.LookVector:Dot(toMe)
+							score = (1 - aimThreat) * 500 + dist2D * 0.2
+						end
+
+						if not isSilent and State.AimPrioritiseDriver and hum.SeatPart and hum.SeatPart:IsA("VehicleSeat") then
+							score = score * 0.35
+						end
+
+						if score < bestScore then
+							bestScore = score
+							bestTarget = {
+								Part = chosenPart,
+								Position = finalPos,
+								ScreenPos = Vector2.new(screenPos.X, screenPos.Y),
+								Hum = hum,
+								Data = t,
+								Char = t.Char,
+								WorldDist = worldDist
+							}
+						end
 					end
 				end
 			end
 		end
 	end
+
+	if bestTarget then
+		if isSilent and State.SilentTargetLock then
+			Env.LockedSilentTarget = bestTarget
+		elseif not isSilent and State.TargetLock then
+			Env.LockedAimbotTarget = bestTarget
+		end
+	end
+
 	return bestTarget
 end
 
@@ -2943,6 +3555,9 @@ local lastTriggerShot = 0
 local orbitAngle = 0
 local fpsCount, lastFpsTick = 0, os.clock()
 
+-- ============================================================================
+-- HAUPT-RENDERSTEPPED ENGINE
+-- ============================================================================
 TrackConn(Svc.Run.RenderStepped:Connect(function(dt)
 	fpsCount += 1
 	if os.clock() - lastFpsTick >= 0.5 then
@@ -2960,39 +3575,152 @@ TrackConn(Svc.Run.RenderStepped:Connect(function(dt)
 		Svc.Lighting.Ambient = Color3.fromRGB(175, 175, 175)
 	end
 
-	local closestTarget = getClosestTargetInFOV()
+	-- 1. AIMBOT & SILENT AIM BERECHNUNG
+	local aimTarget = FindBestCombatTarget(false)
+	local silentTarget = State.SilentAim and FindBestCombatTarget(true) or nil
+	local hudTarget = silentTarget or aimTarget
 
-	if State.TargetHUD and closestTarget and not State.Streamproof then
+	if State.TargetHUD and hudTarget and not State.Streamproof then
 		UI.targetHud.Visible = true
-		local hum = closestTarget.Hum
-		local dist = Env.CachedRoot and math.floor((closestTarget.Part.Position - Env.CachedRoot.Position).Magnitude / 3.2) or 0
-		UI.thName.Text = "🎯 " .. closestTarget.Data.Name
+		local hum = hudTarget.Hum
+		local dist = Env.CachedRoot and math.floor((hudTarget.Part.Position - Env.CachedRoot.Position).Magnitude / 3.2) or 0
+		UI.thName.Text = "🎯 " .. hudTarget.Data.Name
 		UI.thSub.Text = string.format("%d / %d HP • %dm", math.floor(hum.Health), math.floor(hum.MaxHealth), dist)
 		UI.thBarFill.Size = UDim2.new(math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1), 0, 1, 0)
 	else
 		UI.targetHud.Visible = false
 	end
 
-	if closestTarget then
-		local aimPos = closestTarget.Position
-		if State.SilentAim then
-			camera.CFrame = CFrame.lookAt(camera.CFrame.Position, aimPos)
-		elseif State.AimAssist and (Svc.UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) or State.TargetLock) then
+	-- Silent Aim Line to Target
+	if State.SilentAim and State.SilentDrawLine and silentTarget and not State.Streamproof then
+		local vpCenter = camera.ViewportSize * 0.5
+		SetLine(UI.silentTargetLine, vpCenter.X, vpCenter.Y, silentTarget.ScreenPos.X, silentTarget.ScreenPos.Y, State.SilentLineColor, 1.5)
+	else
+		UI.silentTargetLine.Visible = false
+	end
+
+	-- Silent Aim Snap (inkl. Hit Chance %)
+	if State.SilentAim and silentTarget and Svc.UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+		if math.random(1, 100) <= State.SilentHitChance then
+			camera.CFrame = CFrame.lookAt(camera.CFrame.Position, silentTarget.Position)
+		end
+	elseif State.AimAssist and aimTarget and (Svc.UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) or State.TargetLock) then
+		if Env.LastTargetId ~= aimTarget.Data.Id then
+			Env.LastTargetId = aimTarget.Data.Id
+			Env.TargetAcquireTime = os.clock()
+		end
+
+		-- Reaction Time in ms berücksichtigen
+		if (os.clock() - Env.TargetAcquireTime) * 1000 >= State.ReactionTime then
+			local aimPos = aimTarget.Position
+
+			if State.AimJitter then
+				local j = State.JitterStrength * 0.015
+				aimPos += Vector3.new((math.random() - 0.5) * j, (math.random() - 0.5) * j, 0)
+			end
+			if State.RandomOffset then
+				aimPos += Vector3.new(math.sin(os.clock() * 4.5) * 0.09, math.cos(os.clock() * 3.5) * 0.09, 0)
+			end
+			if State.AimOvershoot then
+				aimPos += Vector3.new(math.sin(os.clock() * 11) * 0.14, math.cos(os.clock() * 9) * 0.12, 0)
+			end
+
+			local distScale = 1
+			if State.DistanceScaling and aimTarget.WorldDist then
+				distScale = math.clamp(1 - (aimTarget.WorldDist / math.max(State.MaxAimDistance, 1)) * 0.35, 0.4, 1)
+			end
+
+			local gFactor = (105 - State.GlobalSmooth) / 100
+			local alphaX = math.clamp(((105 - State.HorizontalSmooth) / 100) * gFactor * distScale, 0.03, 1)
+			local alphaY = math.clamp(((105 - State.VerticalSmooth) / 100) * gFactor * distScale, 0.03, 1)
+			local combinedAlpha = (alphaX + alphaY) * 0.5
+
+			if State.AimCurve == "Smooth Smoothing" then
+				combinedAlpha = combinedAlpha * combinedAlpha * (3 - 2 * combinedAlpha)
+			elseif State.AimCurve == "Natural Smoothing" then
+				combinedAlpha = math.sin(combinedAlpha * math.pi * 0.5)
+			end
+
 			local goalCFrame = CFrame.lookAt(camera.CFrame.Position, aimPos)
-			local baseAlpha = math.clamp((105 - State.AimSmoothness) / 100, 0.04, 1)
-			camera.CFrame = camera.CFrame:Lerp(goalCFrame, baseAlpha)
+			camera.CFrame = camera.CFrame:Lerp(goalCFrame, math.clamp(combinedAlpha, 0.02, 1))
+		end
+	else
+		Env.LastTargetId = nil
+	end
+
+	-- 2. TRIGGERBOT BERECHNUNG (MIT HITBOX- & FOV-PRÜFUNG)
+	if State.Triggerbot and mouse.Target and (os.clock() - lastTriggerShot > (State.TriggerDelay / 1000)) then
+		local hitPart = mouse.Target
+		for _, t in ipairs(GetAllEntities()) do
+			if hitPart:IsDescendantOf(t.Char) then
+				local hum = t.Char:FindFirstChildOfClass("Humanoid")
+				local hrp = t.Char:FindFirstChild("HumanoidRootPart")
+				local head = t.Char:FindFirstChild("Head")
+				if hum and hrp then
+					if (t.IsNPC and not State.TriggerFilterNPC) or (not t.IsNPC and not State.TriggerFilterPlayers) then break end
+					if t.IsFriend and not State.TriggerFilterFriends then break end
+					if State.TriggerIgnoreDead and hum.Health <= 0 then break end
+					if State.TriggerIgnoreInvisible and head and head.Transparency > 0.85 then break end
+
+					local dist = (hrp.Position - camera.CFrame.Position).Magnitude / 3.2
+					if dist <= State.TriggerMaxDistance then
+						local pName = hitPart.Name
+						local validBone = State.TriggerHitFullBody
+							or (State.TriggerHitHead and pName == "Head")
+							or (State.TriggerHitNeck and pName == "UpperTorso")
+							or (State.TriggerHitUpperBody and (pName == "UpperTorso" or pName == "Torso" or pName == "HumanoidRootPart"))
+							or (State.TriggerHitLowerBody and (pName == "LowerTorso" or string.find(pName, "Leg")))
+
+						if validBone then
+							lastTriggerShot = os.clock()
+							pcall(function()
+								Svc.VUser:Button1Down(Vector2.zero, camera.CFrame)
+								task.delay(0.02, function() Svc.VUser:Button1Up(Vector2.zero, camera.CFrame) end)
+							end)
+						end
+					end
+				end
+				break
+			end
 		end
 	end
 
-	if State.Triggerbot and mouse.Target and (os.clock() - lastTriggerShot > (State.TriggerDelay / 1000)) then
-		for _, t in ipairs(GetCombatTargets()) do
-			if mouse.Target:IsDescendantOf(t.Char) then
-				lastTriggerShot = os.clock()
-				pcall(function()
-					Svc.VUser:Button1Down(Vector2.zero, camera.CFrame)
-					task.delay(0.02, function() Svc.VUser:Button1Up(Vector2.zero, camera.CFrame) end)
-				end)
-				break
+	-- 3. FULL-SPEC RADAR ENGINE
+	UI.radarDotsFolder:ClearAllChildren()
+	if State.ShowRadar and not State.Streamproof and Env.CachedRoot then
+		local effRange = math.max(15, State.RadarRange / math.max(State.RadarZoom, 0.2))
+		for _, t in ipairs(GetAllEntities()) do
+			if t.Char == Env.CachedChar then continue end
+			if (t.IsNPC and not State.RadarShowNPC) or (not t.IsNPC and not State.RadarShowPlayers) then continue end
+			local hrp = t.Char:FindFirstChild("HumanoidRootPart")
+			local hum = t.Char:FindFirstChildOfClass("Humanoid")
+			if hrp and hum and (hum.Health > 0 or State.RadarShowDead) then
+				local rel = camera.CFrame:PointToObjectSpace(hrp.Position)
+				local distM = math.floor(rel.Magnitude / 3.2)
+				local rx = math.clamp((rel.X / 3.2) / effRange * 0.45, -0.46, 0.46)
+				local rz = math.clamp((rel.Z / 3.2) / effRange * 0.45, -0.46, 0.46)
+
+				local dot = Instance.new("Frame", UI.radarDotsFolder)
+				dot.Size = UDim2.new(0, 6, 0, 6)
+				dot.AnchorPoint = Vector2.new(0.5, 0.5)
+				dot.Position = UDim2.new(0.5 + rx, 0, 0.5 + rz, 0)
+				dot.BackgroundColor3 = (hum.Health <= 0) and Color3.fromRGB(130, 130, 130) or (t.TeamColor or Colors.Accent)
+				corner(dot, 3)
+
+				if State.RadarShowNames or State.RadarShowDistance then
+					local rLbl = Instance.new("TextLabel", dot)
+					rLbl.Size = UDim2.new(0, 90, 0, 12)
+					rLbl.Position = UDim2.new(0, 8, 0.5, -6)
+					rLbl.BackgroundTransparency = 1
+					rLbl.Font = Enum.Font.GothamBold
+					rLbl.TextSize = 8
+					rLbl.TextColor3 = Colors.TextMain
+					rLbl.TextXAlignment = Enum.TextXAlignment.Left
+					local parts = {}
+					if State.RadarShowNames then table.insert(parts, t.Name) end
+					if State.RadarShowDistance then table.insert(parts, distM .. "m") end
+					rLbl.Text = table.concat(parts, " ")
+				end
 			end
 		end
 	end
@@ -3174,4 +3902,4 @@ makeDrag(UI.targetHud, UI.targetHud)
 makeDrag(UI.watermark, UI.watermark)
 
 UI.menuBlur.Size = State.BlurSize
-Notify("GamePro", "v17.1 All 12 Tabs Loaded!", "Success")
+Notify("GamePro", "v18.0 Full-Spec Suite Loaded!", "Success")
