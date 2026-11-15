@@ -1,0 +1,2330 @@
+-- ============================================================================
+-- TEST GAMEPRO // v14.0 ULTIMATE STUDIO SUITE (+ PLAYER TROLL HUB & FX)
+-- Platzierung: LocalScript in StarterPlayer -> StarterPlayerScripts
+-- ============================================================================
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local PathfindingService = game:GetService("PathfindingService")
+local SoundService = game:GetService("SoundService")
+local VirtualUser = game:GetService("VirtualUser")
+local Stats = game:GetService("Stats")
+local TextChatService = game:GetService("TextChatService")
+local HttpService = game:GetService("HttpService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+local playerGui = player:WaitForChild("PlayerGui")
+local camera = workspace.CurrentCamera
+
+-- Verbindungsspeicher für rückstandsloses Beenden (Cleanup)
+local Connections = {}
+local function TrackConn(conn)
+	table.insert(Connections, conn)
+	return conn
+end
+
+local OrigLighting = {
+	Brightness = Lighting.Brightness,
+	ClockTime = Lighting.ClockTime,
+	FogEnd = Lighting.FogEnd,
+	GlobalShadows = Lighting.GlobalShadows,
+	Ambient = Lighting.Ambient,
+	OutdoorAmbient = Lighting.OutdoorAmbient,
+	Gravity = workspace.Gravity,
+	MaxZoom = player.CameraMaxZoomDistance
+}
+
+-- ============================================================================
+-- 1. KONFIGURATION, FARBEN & STATUS
+-- ============================================================================
+local Brand = {
+	Title = "Test GamePRO",
+	Rank = "Ultimate Suite v14",
+	ToggleKey = Enum.KeyCode.RightControl,
+	CommandKey = Enum.KeyCode.K,
+	StreamproofKey = Enum.KeyCode.Insert,
+	PanicKey = Enum.KeyCode.Delete
+}
+
+local Colors = {
+	WindowBg = Color3.fromRGB(16, 17, 22),
+	SidebarBg = Color3.fromRGB(13, 14, 18),
+	GroupBg = Color3.fromRGB(21, 22, 29),
+	ElementBg = Color3.fromRGB(28, 30, 39),
+	Stroke = Color3.fromRGB(38, 40, 52),
+	Accent = Color3.fromRGB(232, 118, 178),
+	Success = Color3.fromRGB(65, 210, 125),
+	Warning = Color3.fromRGB(245, 175, 55),
+	Danger = Color3.fromRGB(235, 75, 85),
+	TextMain = Color3.fromRGB(242, 243, 248),
+	TextMuted = Color3.fromRGB(135, 140, 158)
+}
+
+local State = {
+	Running = true,
+	WalkSpeed = 16, JumpPower = 50, FlySpeed = 85, BaseFOV = 70, BlurSize = 0,
+	Fly = false, Noclip = false, AutoBhop = false, SpiderClimb = false, ZeroG = false,
+	InfiniteJump = false, ClickTP = false, AirWalk = false, AirWalkY = 0,
+	AntiVoid = true, SwimInAir = false,
+	AutoRespawnPos = false, LastDeathCFrame = nil, SafeGroundPos = nil,
+
+	-- Player & Troll Hub
+	SelectedTarget = nil,
+	OrbitTarget = false, OrbitSpeed = 4, OrbitRadius = 8,
+	BackpackAttach = false, HeadSit = false, FlingActive = false,
+	FreezeTarget = false, FakeLag = false,
+	Spinbot = false, SpinSpeed = 35,
+	GhostTrail = false, ForcefieldBody = false, HeadlessLocal = false,
+
+	-- Combat, Aim & Triggerbot
+	AimAssist = false, AimSmoothness = 25, AimFOV = 140, ShowFOVCircle = false,
+	AimTargetPart = "Head", AimTeamCheck = false, AimWallCheck = true,
+	Triggerbot = false, TargetHUD = true,
+	HitboxExpander = false, HitboxSize = 6,
+
+	-- ESP, Crosshair & Radar
+	ESPChams = false, ESPNametags = false, ESPTracers = false,
+	ESPTeamColors = false, ShowRadar = false,
+	CustomCrosshair = false, CrosshairSpin = false, CrosshairSize = 14,
+
+	-- Camera, Shaders & World
+	Freecam = false, FreecamSpeed = 65,
+	Fullbright = false, XRayVision = false,
+	DynamicFOV = false, DepthOfField = false,
+
+	-- Physics, Aura & Vehicle
+	PartMagnet = false, KnockbackGun = false,
+	InstantPrompt = false, ClickAura = false,
+	VehicleNitro = false, VehNitroPower = 150,
+	FollowTarget = nil,
+
+	-- Level, Inspector & Macro
+	LocalDeleteMode = false, RulerMode = false,
+	PartInspector = false, ShowInvisWalls = false,
+	MacroRecording = false, MacroPlaying = false,
+
+	-- Automation & Overlays
+	AutoClicker = false, ClickCPS = 10, AntiAFK = true,
+	ChatAlertKeyword = player.Name,
+	ShowCompass = true, ShowKeybindList = true, ShowScreenGrid = false,
+	UISounds = true, Streamproof = false
+}
+
+local CachedChar, CachedHum, CachedRoot = nil, nil, nil
+local CachedParts = {}
+local OrigPartMaterials = {}
+local flyAtt, flyLv, flyAo = nil, nil, nil
+local airWalkPart = nil
+
+local spawnedDummies = {}
+local invisWallsOriginal = {}
+local xrayOriginal = {}
+local macroFrames = {}
+local CustomKeybinds = {}
+local AllTogglesMap = {}
+local AllSlidersMap = {}
+local BindingToggleObj = nil
+
+local function cleanupFlyConstraints()
+	if flyLv then flyLv:Destroy() flyLv = nil end
+	if flyAo then flyAo:Destroy() flyAo = nil end
+	if flyAtt then flyAtt:Destroy() flyAtt = nil end
+	if CachedHum and CachedHum.PlatformStand then
+		CachedHum.PlatformStand = false
+	end
+end
+
+local function updateZeroG()
+	if not CachedRoot then return end
+	local existing = CachedRoot:FindFirstChild("TestProZeroG")
+	local existingAtt = CachedRoot:FindFirstChild("TestProZeroGAtt")
+	if State.ZeroG and not existing then
+		local att = Instance.new("Attachment", CachedRoot)
+		att.Name = "TestProZeroGAtt"
+		local vf = Instance.new("VectorForce", CachedRoot)
+		vf.Name = "TestProZeroG"
+		vf.Attachment0 = att
+		vf.RelativeTo = Enum.ActuatorRelativeTo.World
+		vf.Force = Vector3.new(0, CachedRoot.AssemblyMass * workspace.Gravity, 0)
+	elseif not State.ZeroG then
+		if existing then existing:Destroy() end
+		if existingAtt then existingAtt:Destroy() end
+	end
+end
+
+local function applyBodyMaterial(enable)
+	if not CachedChar then return end
+	if enable then
+		for _, p in ipairs(CachedChar:GetDescendants()) do
+			if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
+				if not OrigPartMaterials[p] then
+					OrigPartMaterials[p] = {Mat = p.Material, Col = p.Color}
+				end
+				p.Material = Enum.Material.ForceField
+				p.Color = Colors.Accent
+			end
+		end
+	else
+		for p, data in pairs(OrigPartMaterials) do
+			if p and p.Parent then
+				p.Material = data.Mat
+				p.Color = data.Col
+			end
+		end
+		table.clear(OrigPartMaterials)
+	end
+end
+
+local function refreshCharCache(char)
+	cleanupFlyConstraints()
+	CachedChar = char
+	CachedParts = {}
+	table.clear(OrigPartMaterials)
+	if not char then CachedHum, CachedRoot = nil, nil return end
+	CachedHum = char:FindFirstChildOfClass("Humanoid") or char:WaitForChild("Humanoid", 5)
+	CachedRoot = char:FindFirstChild("HumanoidRootPart") or char:WaitForChild("HumanoidRootPart", 5)
+	for _, p in ipairs(char:GetDescendants()) do
+		if p:IsA("BasePart") then table.insert(CachedParts, p) end
+	end
+
+	if CachedHum then
+		TrackConn(CachedHum.Died:Connect(function()
+			if CachedRoot then State.LastDeathCFrame = CachedRoot.CFrame end
+		end))
+	end
+	if State.AutoRespawnPos and State.LastDeathCFrame and CachedRoot then
+		task.wait(0.15)
+		CachedRoot.CFrame = State.LastDeathCFrame + Vector3.new(0, 3, 0)
+	end
+	if State.ZeroG then updateZeroG() end
+	if State.ForcefieldBody then applyBodyMaterial(true) end
+end
+
+if player.Character then refreshCharCache(player.Character) end
+TrackConn(player.CharacterAdded:Connect(refreshCharCache))
+
+-- Anti-AFK & Instant ProximityPrompt Hook
+TrackConn(player.Idled:Connect(function()
+	if State.AntiAFK then
+		VirtualUser:CaptureController()
+		VirtualUser:ClickButton2(Vector2.zero)
+	end
+end))
+
+TrackConn(ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
+	if State.InstantPrompt then
+		prompt.HoldDuration = 0
+	end
+end))
+
+TrackConn(UserInputService.JumpRequest:Connect(function()
+	if State.InfiniteJump and CachedHum then
+		CachedHum:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
+end))
+
+local function corner(p, r)
+	local c = Instance.new("UICorner", p)
+	c.CornerRadius = UDim.new(0, r or 8)
+	return c
+end
+
+local function stroke(p, col, thick)
+	local s = Instance.new("UIStroke", p)
+	s.Color = col or Colors.Stroke
+	s.Thickness = thick or 1
+	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	return s
+end
+
+local function tween(o, t, props)
+	local tw = TweenService:Create(o, TweenInfo.new(t, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), props)
+	tw:Play()
+	return tw
+end
+
+-- Alle Ziele (Spieler + gespawnte Dummies) abrufen
+local function GetCombatTargets()
+	local list = {}
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player and plr.Character then
+			table.insert(list, {
+				Id = "Plr_" .. plr.UserId,
+				Name = plr.DisplayName,
+				Char = plr.Character,
+				Team = plr.Team,
+				Color = (State.ESPTeamColors and plr.TeamColor) and plr.TeamColor.Color or Colors.Accent,
+				UserId = plr.UserId
+			})
+		end
+	end
+	for i, d in ipairs(spawnedDummies) do
+		if d and d.Parent then
+			table.insert(list, {
+				Id = "Dummy_" .. i,
+				Name = d.Name,
+				Char = d,
+				Team = nil,
+				Color = Colors.Warning,
+				UserId = player.UserId
+			})
+		end
+	end
+	return list
+end
+
+-- ============================================================================
+-- 2. HAUPT-GUI & ALLE OVERLAYS (CROSSHAIR, KEYBINDS, RADAR, TARGET-HUD)
+-- ============================================================================
+if playerGui:FindFirstChild("TestGameProV14") then
+	playerGui.TestGameProV14:Destroy()
+end
+
+local gui = Instance.new("ScreenGui", playerGui)
+gui.Name = "TestGameProV14"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local espFolder = Instance.new("Folder", gui)
+espFolder.Name = "ESPContainer"
+
+local ghostFolder = workspace:FindFirstChild("TestProGhosts") or Instance.new("Folder", workspace)
+ghostFolder.Name = "TestProGhosts"
+
+local clickSound = Instance.new("Sound", gui)
+clickSound.SoundId = "rbxassetid://6895079853"
+clickSound.Volume = 0.25
+
+local boomboxSound = Instance.new("Sound", gui)
+boomboxSound.Volume = 0.6
+boomboxSound.Looped = true
+
+local function playUISound()
+	if State.UISounds then SoundService:PlayLocalSound(clickSound) end
+end
+
+local masterRoot = Instance.new("Frame", gui)
+masterRoot.Size = UDim2.new(1, 0, 1, 0)
+masterRoot.BackgroundTransparency = 1
+
+local tracerContainer = Instance.new("Frame", masterRoot)
+tracerContainer.Size = UDim2.new(1, 0, 1, 0)
+tracerContainer.BackgroundTransparency = 1
+
+-- Custom Crosshair Overlay
+local crosshairHolder = Instance.new("Frame", masterRoot)
+crosshairHolder.Size = UDim2.new(0, 40, 0, 40)
+crosshairHolder.AnchorPoint = Vector2.new(0.5, 0.5)
+crosshairHolder.Position = UDim2.new(0.5, 0, 0.5, 0)
+crosshairHolder.BackgroundTransparency = 1
+crosshairHolder.Visible = false
+
+local chH = Instance.new("Frame", crosshairHolder)
+chH.Size = UDim2.new(0, State.CrosshairSize, 0, 2)
+chH.AnchorPoint = Vector2.new(0.5, 0.5) chH.Position = UDim2.new(0.5, 0, 0.5, 0)
+chH.BackgroundColor3 = Colors.Accent chH.BorderSizePixel = 0
+
+local chV = Instance.new("Frame", crosshairHolder)
+chV.Size = UDim2.new(0, 2, 0, State.CrosshairSize)
+chV.AnchorPoint = Vector2.new(0.5, 0.5) chV.Position = UDim2.new(0.5, 0, 0.5, 0)
+chV.BackgroundColor3 = Colors.Accent chV.BorderSizePixel = 0
+
+-- Active Keybind & Status List Overlay (Links Mitte)
+local keybindOverlay = Instance.new("Frame", masterRoot)
+keybindOverlay.Size = UDim2.new(0, 175, 0, 0)
+keybindOverlay.AutomaticSize = Enum.AutomaticSize.Y
+keybindOverlay.Position = UDim2.new(0, 22, 0.42, 0)
+keybindOverlay.BackgroundColor3 = Colors.WindowBg
+keybindOverlay.BackgroundTransparency = 0.1
+keybindOverlay.Visible = State.ShowKeybindList
+corner(keybindOverlay, 8)
+stroke(keybindOverlay, Colors.Stroke, 1.2)
+
+local kbPad = Instance.new("UIPadding", keybindOverlay)
+kbPad.PaddingTop = UDim.new(0, 7) kbPad.PaddingBottom = UDim.new(0, 8)
+kbPad.PaddingLeft = UDim.new(0, 9) kbPad.PaddingRight = UDim.new(0, 9)
+
+local kbLayout = Instance.new("UIListLayout", keybindOverlay)
+kbLayout.Padding = UDim.new(0, 4)
+
+local kbTitle = Instance.new("TextLabel", keybindOverlay)
+kbTitle.Size = UDim2.new(1, 0, 0, 16) kbTitle.BackgroundTransparency = 1
+kbTitle.Text = "⚡ Active Mods & Binds" kbTitle.Font = Enum.Font.GothamBold
+kbTitle.TextSize = 11 kbTitle.TextColor3 = Colors.Accent kbTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+local kbListLabel = Instance.new("TextLabel", keybindOverlay)
+kbListLabel.Size = UDim2.new(1, 0, 0, 0) kbListLabel.AutomaticSize = Enum.AutomaticSize.Y
+kbListLabel.BackgroundTransparency = 1 kbListLabel.Text = "Keine Mods aktiv"
+kbListLabel.Font = Enum.Font.Code kbListLabel.TextSize = 10 kbListLabel.TextColor3 = Colors.TextMain
+kbListLabel.TextXAlignment = Enum.TextXAlignment.Left kbListLabel.TextYAlignment = Enum.TextYAlignment.Top
+
+local function refreshKeybindOverlay()
+	local activeLines = {}
+	for _, tObj in ipairs(CustomKeybinds) do
+		if tObj.Get() then
+			local bTxt = tObj.Key and ("[" .. tObj.Key.Name .. "]") or "[ON]"
+			table.insert(activeLines, "• " .. tObj.Label .. " " .. bTxt)
+		end
+	end
+	kbListLabel.Text = (#activeLines > 0) and table.concat(activeLines, "\n") or "Keine Mods aktiv"
+end
+
+-- FOV Circle Overlay
+local fovCircle = Instance.new("Frame", masterRoot)
+fovCircle.Size = UDim2.new(0, State.AimFOV * 2, 0, State.AimFOV * 2)
+fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+fovCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+fovCircle.BackgroundTransparency = 1
+fovCircle.Visible = false
+corner(fovCircle, 999)
+local fovStroke = stroke(fovCircle, Colors.Accent, 1.4)
+fovStroke.Transparency = 0.25
+
+-- 2D Radar / Minimap Overlay
+local radarFrame = Instance.new("Frame", masterRoot)
+radarFrame.Size = UDim2.new(0, 150, 0, 150)
+radarFrame.Position = UDim2.new(0, 22, 0, 52)
+radarFrame.BackgroundColor3 = Colors.WindowBg
+radarFrame.BackgroundTransparency = 0.12
+radarFrame.Visible = false
+radarFrame.ClipsDescendants = true
+corner(radarFrame, 12)
+stroke(radarFrame, Colors.Stroke, 1.2)
+
+local radarCrossV = Instance.new("Frame", radarFrame)
+radarCrossV.Size = UDim2.new(0, 1, 1, 0) radarCrossV.Position = UDim2.new(0.5, 0, 0, 0)
+radarCrossV.BackgroundColor3 = Colors.Stroke radarCrossV.BorderSizePixel = 0
+local radarCrossH = Instance.new("Frame", radarFrame)
+radarCrossH.Size = UDim2.new(1, 0, 0, 1) radarCrossH.Position = UDim2.new(0, 0, 0.5, 0)
+radarCrossH.BackgroundColor3 = Colors.Stroke radarCrossH.BorderSizePixel = 0
+
+local radarSelfDot = Instance.new("Frame", radarFrame)
+radarSelfDot.Size = UDim2.new(0, 6, 0, 6)
+radarSelfDot.AnchorPoint = Vector2.new(0.5, 0.5)
+radarSelfDot.Position = UDim2.new(0.5, 0, 0.5, 0)
+radarSelfDot.BackgroundColor3 = Color3.new(1, 1, 1)
+corner(radarSelfDot, 4)
+
+local radarDotsFolder = Instance.new("Folder", radarFrame)
+
+-- Target-Info-HUD Overlay
+local targetHud = Instance.new("Frame", masterRoot)
+targetHud.Size = UDim2.new(0, 250, 0, 58)
+targetHud.Position = UDim2.new(0.5, -125, 0.78, 0)
+targetHud.BackgroundColor3 = Colors.WindowBg
+targetHud.BackgroundTransparency = 0.08
+targetHud.Visible = false
+corner(targetHud, 10)
+local targetHudStroke = stroke(targetHud, Colors.Accent, 1.4)
+
+local thName = Instance.new("TextLabel", targetHud)
+thName.Size = UDim2.new(1, -20, 0, 18) thName.Position = UDim2.new(0, 10, 0, 6)
+thName.BackgroundTransparency = 1 thName.Text = "Target: None"
+thName.Font = Enum.Font.GothamBold thName.TextSize = 12 thName.TextColor3 = Colors.TextMain
+thName.TextXAlignment = Enum.TextXAlignment.Left
+
+local thSub = Instance.new("TextLabel", targetHud)
+thSub.Size = UDim2.new(1, -20, 0, 14) thSub.Position = UDim2.new(0, 10, 0, 23)
+thSub.BackgroundTransparency = 1 thSub.Text = "100 / 100 HP • 0 Studs"
+thSub.Font = Enum.Font.GothamMedium thSub.TextSize = 10 thSub.TextColor3 = Colors.TextMuted
+thSub.TextXAlignment = Enum.TextXAlignment.Left
+
+local thBarBg = Instance.new("Frame", targetHud)
+thBarBg.Size = UDim2.new(1, -20, 0, 8) thBarBg.Position = UDim2.new(0, 10, 0, 42)
+thBarBg.BackgroundColor3 = Colors.ElementBg corner(thBarBg, 4)
+
+local thBarFill = Instance.new("Frame", thBarBg)
+thBarFill.Size = UDim2.new(1, 0, 1, 0)
+thBarFill.BackgroundColor3 = Colors.Success corner(thBarFill, 4)
+
+-- Mouse-Part-Inspector Overlay
+local inspectorCard = Instance.new("Frame", masterRoot)
+inspectorCard.Size = UDim2.new(0, 240, 0, 86)
+inspectorCard.BackgroundColor3 = Colors.WindowBg
+inspectorCard.BackgroundTransparency = 0.05
+inspectorCard.Visible = false
+inspectorCard.ZIndex = 60
+corner(inspectorCard, 8)
+stroke(inspectorCard, Colors.Accent, 1.2)
+
+local inspectorLbl = Instance.new("TextLabel", inspectorCard)
+inspectorLbl.Size = UDim2.new(1, -14, 1, -10) inspectorLbl.Position = UDim2.new(0, 7, 0, 5)
+inspectorLbl.BackgroundTransparency = 1 inspectorLbl.Font = Enum.Font.Code inspectorLbl.TextSize = 10
+inspectorLbl.TextColor3 = Colors.TextMain inspectorLbl.TextXAlignment = Enum.TextXAlignment.Left
+inspectorLbl.TextYAlignment = Enum.TextYAlignment.Top inspectorLbl.TextWrapped = true inspectorLbl.ZIndex = 61
+
+local menuBlur = Lighting:FindFirstChild("TestGameProBlur") or Instance.new("BlurEffect", Lighting)
+menuBlur.Name = "TestGameProBlur"
+menuBlur.Size = 0
+
+local dofEffect = Lighting:FindFirstChild("TestGameProDOF") or Instance.new("DepthOfFieldEffect", Lighting)
+dofEffect.Name = "TestGameProDOF"
+dofEffect.Enabled = false
+dofEffect.FarIntensity = 0.65
+dofEffect.FocusDistance = 25
+
+local ccShader = Lighting:FindFirstChild("TestGameProShader") or Instance.new("ColorCorrectionEffect", Lighting)
+ccShader.Name = "TestGameProShader"
+ccShader.Enabled = false
+
+-- Screen-Grid Overlay
+local screenGrid = Instance.new("Frame", masterRoot)
+screenGrid.Size = UDim2.new(1, 0, 1, 0)
+screenGrid.BackgroundTransparency = 1
+screenGrid.Visible = false
+for _, pos in ipairs({0.333, 0.5, 0.666}) do
+	local v = Instance.new("Frame", screenGrid)
+	v.Size = UDim2.new(0, 1, 1, 0) v.Position = UDim2.new(pos, 0, 0, 0)
+	v.BackgroundColor3 = Colors.Accent v.BackgroundTransparency = 0.65 v.BorderSizePixel = 0
+	local h = Instance.new("Frame", screenGrid)
+	h.Size = UDim2.new(1, 0, 0, 1) h.Position = UDim2.new(0, 0, pos, 0)
+	h.BackgroundColor3 = Colors.Accent h.BackgroundTransparency = 0.65 h.BorderSizePixel = 0
+end
+
+-- Floating Mini-Compass
+local compassBox = Instance.new("Frame", masterRoot)
+compassBox.Size = UDim2.new(0, 210, 0, 28)
+compassBox.Position = UDim2.new(0.5, -105, 0, 44)
+compassBox.BackgroundColor3 = Colors.WindowBg
+compassBox.BackgroundTransparency = 0.08
+compassBox.Visible = State.ShowCompass
+corner(compassBox, 8)
+stroke(compassBox, Colors.Stroke, 1)
+
+local compassLbl = Instance.new("TextLabel", compassBox)
+compassLbl.Size = UDim2.new(1, 0, 1, 0)
+compassLbl.BackgroundTransparency = 1
+compassLbl.Text = "N (0°) • 0, 0, 0"
+compassLbl.Font = Enum.Font.GothamBold
+compassLbl.TextSize = 11
+compassLbl.TextColor3 = Colors.Accent
+
+-- Notification-History-Log & Toasts
+local NotifyHistory = {}
+local historyLabelRef = nil
+
+local toastHolder = Instance.new("Frame", masterRoot)
+toastHolder.Size = UDim2.new(0, 275, 0, 240)
+toastHolder.Position = UDim2.new(1, -290, 1, -255)
+toastHolder.BackgroundTransparency = 1
+toastHolder.ZIndex = 30
+local toastList = Instance.new("UIListLayout", toastHolder)
+toastList.VerticalAlignment = Enum.VerticalAlignment.Bottom
+toastList.Padding = UDim.new(0, 6)
+
+local function Notify(title, msg, nType)
+	if not State.Running then return end
+	table.insert(NotifyHistory, 1, string.format("[%s] %s: %s", os.date("%H:%M:%S"), title, msg))
+	if #NotifyHistory > 15 then table.remove(NotifyHistory) end
+	if historyLabelRef then historyLabelRef.Text = table.concat(NotifyHistory, "\n") end
+
+	if State.Streamproof then return end
+	local col = (nType == "Success" and Colors.Success) or (nType == "Warn" and Colors.Warning) or (nType == "Alert" and Colors.Danger) or Colors.Accent
+
+	local card = Instance.new("Frame", toastHolder)
+	card.Size = UDim2.new(1, 0, 0, 44)
+	card.BackgroundColor3 = Colors.GroupBg
+	corner(card, 8)
+	local st = stroke(card, col, 1.2)
+
+	local bar = Instance.new("Frame", card)
+	bar.Size = UDim2.new(0, 3, 1, -12) bar.Position = UDim2.new(0, 6, 0, 6)
+	bar.BackgroundColor3 = col corner(bar, 2)
+
+	local t1 = Instance.new("TextLabel", card)
+	t1.Size = UDim2.new(1, -20, 0, 15) t1.Position = UDim2.new(0, 14, 0, 5)
+	t1.BackgroundTransparency = 1 t1.Text = title t1.Font = Enum.Font.GothamBold t1.TextSize = 11
+	t1.TextColor3 = col t1.TextXAlignment = Enum.TextXAlignment.Left
+
+	local t2 = Instance.new("TextLabel", card)
+	t2.Size = UDim2.new(1, -20, 0, 15) t2.Position = UDim2.new(0, 14, 0, 22)
+	t2.BackgroundTransparency = 1 t2.Text = msg t2.Font = Enum.Font.Gotham t2.TextSize = 10
+	t2.TextColor3 = Colors.TextMain t2.TextXAlignment = Enum.TextXAlignment.Left t2.TextTruncate = Enum.TextTruncate.AtEnd
+
+	task.delay(2.4, function()
+		if card and card.Parent then
+			tween(card, 0.2, {BackgroundTransparency = 1})
+			tween(t1, 0.2, {TextTransparency = 1})
+			tween(t2, 0.2, {TextTransparency = 1})
+			tween(st, 0.2, {Transparency = 1})
+			task.wait(0.22)
+			if card then card:Destroy() end
+		end
+	end)
+end
+
+-- Quick-Search Commandbar (Strg + K)
+local cmdModal = Instance.new("Frame", masterRoot)
+cmdModal.Size = UDim2.new(0, 400, 0, 230)
+cmdModal.Position = UDim2.new(0.5, -200, 0.24, 0)
+cmdModal.BackgroundColor3 = Colors.WindowBg
+cmdModal.Visible = false
+cmdModal.ZIndex = 50
+corner(cmdModal, 10)
+stroke(cmdModal, Colors.Accent, 1.5)
+
+local cmdBox = Instance.new("TextBox", cmdModal)
+cmdBox.Size = UDim2.new(1, -20, 0, 32) cmdBox.Position = UDim2.new(0, 10, 0, 10)
+cmdBox.BackgroundColor3 = Colors.ElementBg cmdBox.PlaceholderText = "⌘ Schnellbefehl suchen (z.B. Orbit, Fling, Ghost, XRay)..."
+cmdBox.PlaceholderColor3 = Colors.TextMuted cmdBox.Text = "" cmdBox.TextColor3 = Colors.TextMain
+cmdBox.Font = Enum.Font.GothamBold cmdBox.TextSize = 11 cmdBox.ZIndex = 51
+corner(cmdBox, 7)
+
+local cmdScroll = Instance.new("ScrollingFrame", cmdModal)
+cmdScroll.Size = UDim2.new(1, -20, 1, -52) cmdScroll.Position = UDim2.new(0, 10, 0, 46)
+cmdScroll.BackgroundTransparency = 1 cmdScroll.ScrollBarThickness = 2
+cmdScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y cmdScroll.CanvasSize = UDim2.new(0, 0, 0, 0) cmdScroll.ZIndex = 51
+local cmdList = Instance.new("UIListLayout", cmdScroll) cmdList.Padding = UDim.new(0, 4)
+
+local CommandEntries = {}
+local function RegisterQuickCmd(label, fn)
+	local b = Instance.new("TextButton", cmdScroll)
+	b.Size = UDim2.new(1, 0, 0, 26) b.BackgroundColor3 = Colors.GroupBg
+	b.Text = "  ▸ " .. label b.Font = Enum.Font.GothamMedium b.TextSize = 11
+	b.TextColor3 = Colors.TextMain b.TextXAlignment = Enum.TextXAlignment.Left b.ZIndex = 52
+	corner(b, 6)
+	b.MouseButton1Click:Connect(function()
+		playUISound()
+		cmdModal.Visible = false
+		fn()
+	end)
+	local entry = {Btn = b, Key = string.lower(label)}
+	table.insert(CommandEntries, entry)
+	return entry
+end
+
+cmdBox:GetPropertyChangedSignal("Text"):Connect(function()
+	local q = string.lower(cmdBox.Text)
+	for _, e in ipairs(CommandEntries) do
+		if e.Btn and e.Btn.Parent then
+			e.Btn.Visible = (q == "" or string.find(e.Key, q, 1, true) ~= nil)
+		end
+	end
+end)
+
+-- Top-Watermark
+local watermark = Instance.new("Frame", masterRoot)
+watermark.Size = UDim2.new(0, 560, 0, 32)
+watermark.Position = UDim2.new(1, -576, 0, 44)
+watermark.BackgroundColor3 = Colors.WindowBg
+watermark.BackgroundTransparency = 0.05
+corner(watermark, 8)
+stroke(watermark, Colors.Stroke, 1)
+
+local wmLayout = Instance.new("UIListLayout", watermark)
+wmLayout.FillDirection = Enum.FillDirection.Horizontal
+wmLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+wmLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+wmLayout.Padding = UDim.new(0, 10)
+
+local function makeWmChip(text, isHighlight)
+	local lbl = Instance.new("TextLabel", watermark)
+	lbl.Size = UDim2.new(0, 0, 1, 0) lbl.AutomaticSize = Enum.AutomaticSize.X
+	lbl.BackgroundTransparency = 1 lbl.Text = text
+	lbl.Font = isHighlight and Enum.Font.GothamBold or Enum.Font.GothamMedium
+	lbl.TextSize = 11 lbl.TextColor3 = isHighlight and Colors.Accent or Colors.TextMain
+	return lbl
+end
+
+makeWmChip("Welcome to " .. Brand.Title .. ", " .. player.DisplayName .. "!", false)
+makeWmChip("|", false)
+local wmRank  = makeWmChip("★ " .. Brand.Rank, true)
+makeWmChip("|", false)
+local wmDate  = makeWmChip(os.date("%b %d %Y %H:%M"), false)
+makeWmChip("|", false)
+local wmStats = makeWmChip("60 FPS • 0ms", false)
+
+-- ============================================================================
+-- 3. DUAL-PANEL HAUPTFENSTER & SETTINGS-PANEL
+-- ============================================================================
+local mainContainer = Instance.new("Frame", masterRoot)
+mainContainer.Size = UDim2.new(0, 940, 0, 535)
+mainContainer.Position = UDim2.new(0.5, -470, 0.5, -267)
+mainContainer.BackgroundTransparency = 1
+
+local masterScale = Instance.new("UIScale", mainContainer)
+masterScale.Scale = 1.0
+
+local mainWin = Instance.new("Frame", mainContainer)
+mainWin.Size = UDim2.new(0, 665, 1, 0)
+mainWin.BackgroundColor3 = Colors.WindowBg
+mainWin.BackgroundTransparency = 0.05
+mainWin.ClipsDescendants = true
+corner(mainWin, 10)
+stroke(mainWin, Colors.Stroke, 1.2)
+
+local sidebar = Instance.new("Frame", mainWin)
+sidebar.Size = UDim2.new(0, 160, 1, 0)
+sidebar.BackgroundColor3 = Colors.SidebarBg
+sidebar.BackgroundTransparency = 0.05
+sidebar.BorderSizePixel = 0
+
+local sideBorder = Instance.new("Frame", sidebar)
+sideBorder.Size = UDim2.new(0, 1, 1, 0) sideBorder.Position = UDim2.new(1, -1, 0, 0)
+sideBorder.BackgroundColor3 = Colors.Stroke sideBorder.BorderSizePixel = 0
+
+local brandLogo = Instance.new("TextLabel", sidebar)
+brandLogo.Size = UDim2.new(1, -12, 0, 54) brandLogo.Position = UDim2.new(0, 6, 0, 4)
+brandLogo.BackgroundTransparency = 1 brandLogo.Text = Brand.Title
+brandLogo.Font = Enum.Font.GothamBold brandLogo.TextSize = 18 brandLogo.TextColor3 = Colors.TextMain
+
+local navScroll = Instance.new("ScrollingFrame", sidebar)
+navScroll.Size = UDim2.new(1, -16, 1, -120) navScroll.Position = UDim2.new(0, 8, 0, 60)
+navScroll.BackgroundTransparency = 1 navScroll.ScrollBarThickness = 0
+navScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y navScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+local navLayout = Instance.new("UIListLayout", navScroll)
+navLayout.Padding = UDim.new(0, 4)
+
+-- Profil unten links
+local profileBox = Instance.new("Frame", sidebar)
+profileBox.Size = UDim2.new(1, -16, 0, 46) profileBox.Position = UDim2.new(0, 8, 1, -54)
+profileBox.BackgroundColor3 = Colors.GroupBg
+corner(profileBox, 8)
+stroke(profileBox, Colors.Stroke, 1)
+
+local avatarImg = Instance.new("ImageLabel", profileBox)
+avatarImg.Size = UDim2.new(0, 30, 0, 30) avatarImg.Position = UDim2.new(0, 8, 0.5, -15)
+avatarImg.BackgroundColor3 = Colors.ElementBg corner(avatarImg, 15)
+task.spawn(function()
+	local ok, img = pcall(function()
+		return Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
+	end)
+	if ok and avatarImg and avatarImg.Parent then avatarImg.Image = img end
+end)
+
+local pName = Instance.new("TextLabel", profileBox)
+pName.Size = UDim2.new(1, -48, 0, 16) pName.Position = UDim2.new(0, 44, 0, 7)
+pName.BackgroundTransparency = 1 pName.Text = player.DisplayName
+pName.Font = Enum.Font.GothamBold pName.TextSize = 11 pName.TextColor3 = Colors.TextMain
+pName.TextXAlignment = Enum.TextXAlignment.Left pName.TextTruncate = Enum.TextTruncate.AtEnd
+
+local pRank = Instance.new("TextLabel", profileBox)
+pRank.Size = UDim2.new(1, -48, 0, 14) pRank.Position = UDim2.new(0, 44, 0, 23)
+pRank.BackgroundTransparency = 1 pRank.Text = Brand.Rank
+pRank.Font = Enum.Font.GothamSemibold pRank.TextSize = 10 pRank.TextColor3 = Colors.Accent
+pRank.TextXAlignment = Enum.TextXAlignment.Left
+
+local rightArea = Instance.new("Frame", mainWin)
+rightArea.Size = UDim2.new(1, -160, 1, 0) rightArea.Position = UDim2.new(0, 160, 0, 0)
+rightArea.BackgroundTransparency = 1
+
+local subTabBar = Instance.new("Frame", rightArea)
+subTabBar.Size = UDim2.new(1, 0, 0, 46) subTabBar.BackgroundTransparency = 1
+
+local subDiv = Instance.new("Frame", subTabBar)
+subDiv.Size = UDim2.new(1, 0, 0, 1) subDiv.Position = UDim2.new(0, 0, 1, -1)
+subDiv.BackgroundColor3 = Colors.Stroke subDiv.BorderSizePixel = 0
+
+local subTabHolder = Instance.new("Frame", subTabBar)
+subTabHolder.Size = UDim2.new(1, -46, 1, 0) subTabHolder.Position = UDim2.new(0, 12, 0, 0)
+subTabHolder.BackgroundTransparency = 1
+local subLayout = Instance.new("UIListLayout", subTabHolder)
+subLayout.FillDirection = Enum.FillDirection.Horizontal
+subLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+subLayout.Padding = UDim.new(0, 6)
+
+-- Command Palette Button (⌘)
+local cmdOpenBtn = Instance.new("TextButton", subTabBar)
+cmdOpenBtn.Size = UDim2.new(0, 26, 0, 26) cmdOpenBtn.Position = UDim2.new(1, -34, 0.5, -13)
+cmdOpenBtn.BackgroundColor3 = Colors.ElementBg cmdOpenBtn.Text = "⌘"
+cmdOpenBtn.Font = Enum.Font.GothamBold cmdOpenBtn.TextSize = 13 cmdOpenBtn.TextColor3 = Colors.Accent
+corner(cmdOpenBtn, 7)
+cmdOpenBtn.MouseButton1Click:Connect(function()
+	playUISound()
+	cmdModal.Visible = not cmdModal.Visible
+	if cmdModal.Visible then cmdBox:CaptureFocus() end
+end)
+
+local pagesContainer = Instance.new("Frame", rightArea)
+pagesContainer.Size = UDim2.new(1, -24, 1, -58) pagesContainer.Position = UDim2.new(0, 12, 0, 52)
+pagesContainer.BackgroundTransparency = 1
+
+-- Settings Panel Rechts
+local settingsWin = Instance.new("Frame", mainContainer)
+settingsWin.Size = UDim2.new(0, 265, 1, 0) settingsWin.Position = UDim2.new(0, 675, 0, 0)
+settingsWin.BackgroundColor3 = Colors.WindowBg settingsWin.BackgroundTransparency = 0.05
+settingsWin.ClipsDescendants = true
+corner(settingsWin, 10)
+stroke(settingsWin, Colors.Stroke, 1.2)
+
+local setTop = Instance.new("Frame", settingsWin)
+setTop.Size = UDim2.new(1, 0, 0, 30) setTop.BackgroundTransparency = 1
+local setTopTitle = Instance.new("TextLabel", setTop)
+setTopTitle.Size = UDim2.new(1, -40, 1, 0) setTopTitle.Position = UDim2.new(0, 12, 0, 0)
+setTopTitle.BackgroundTransparency = 1 setTopTitle.Text = "⚙  Settings, Themes & Config"
+setTopTitle.Font = Enum.Font.GothamMedium setTopTitle.TextSize = 11
+setTopTitle.TextColor3 = Colors.TextMuted setTopTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+local setBrand = Instance.new("TextLabel", settingsWin)
+setBrand.Size = UDim2.new(1, 0, 0, 30) setBrand.Position = UDim2.new(0, 0, 0, 24)
+setBrand.BackgroundTransparency = 1 setBrand.Text = Brand.Title
+setBrand.Font = Enum.Font.GothamBold setBrand.TextSize = 18 setBrand.TextColor3 = Colors.TextMain
+
+local setContent = Instance.new("ScrollingFrame", settingsWin)
+setContent.Size = UDim2.new(1, -20, 1, -62) setContent.Position = UDim2.new(0, 10, 0, 56)
+setContent.BackgroundTransparency = 1 setContent.ScrollBarThickness = 2
+setContent.AutomaticCanvasSize = Enum.AutomaticSize.Y setContent.CanvasSize = UDim2.new(0, 0, 0, 0)
+local setList = Instance.new("UIListLayout", setContent)
+setList.Padding = UDim.new(0, 6)
+
+-- ============================================================================
+-- 4. KOMPONENTEN-BUILDER
+-- ============================================================================
+local AccentFills, AccentPills = {}, {}
+
+local function ApplyAccent(col)
+	Colors.Accent = col
+	wmRank.TextColor3 = col
+	pRank.TextColor3 = col
+	compassLbl.TextColor3 = col
+	cmdOpenBtn.TextColor3 = col
+	fovStroke.Color = col
+	targetHudStroke.Color = col
+	kbTitle.TextColor3 = col
+	chH.BackgroundColor3 = col
+	chV.BackgroundColor3 = col
+	for _, f in ipairs(AccentFills) do if f and f.Parent then f.BackgroundColor3 = col end end
+	for _, p in ipairs(AccentPills) do if p.Get() and p.Pill then p.Pill.BackgroundColor3 = col end end
+end
+
+local function CreateSlider(parent, labelText, min, max, default, suffix, callback)
+	local holder = Instance.new("Frame", parent)
+	holder.Size = UDim2.new(1, 0, 0, 36) holder.BackgroundTransparency = 1
+
+	local lbl = Instance.new("TextLabel", holder)
+	lbl.Size = UDim2.new(0.7, 0, 0, 15) lbl.BackgroundTransparency = 1
+	lbl.Text = labelText lbl.Font = Enum.Font.GothamMedium lbl.TextSize = 11
+	lbl.TextColor3 = Colors.TextMain lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+	local valLbl = Instance.new("TextLabel", holder)
+	valLbl.Size = UDim2.new(0.3, 0, 0, 15) valLbl.Position = UDim2.new(0.7, 0, 0, 0)
+	valLbl.BackgroundTransparency = 1 valLbl.Text = tostring(default) .. (suffix or "")
+	valLbl.Font = Enum.Font.GothamBold valLbl.TextSize = 10
+	valLbl.TextColor3 = Colors.TextMuted valLbl.TextXAlignment = Enum.TextXAlignment.Right
+
+	local track = Instance.new("TextButton", holder)
+	track.Size = UDim2.new(1, 0, 0, 5) track.Position = UDim2.new(0, 0, 0, 22)
+	track.BackgroundColor3 = Colors.ElementBg track.Text = "" track.AutoButtonColor = false
+	corner(track, 3)
+
+	local fill = Instance.new("Frame", track)
+	fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+	fill.BackgroundColor3 = Colors.Accent
+	corner(fill, 3)
+	table.insert(AccentFills, fill)
+
+	local knob = Instance.new("Frame", fill)
+	knob.Size = UDim2.new(0, 11, 0, 11) knob.Position = UDim2.new(1, -5, 0.5, -5)
+	knob.BackgroundColor3 = Color3.new(1, 1, 1) corner(knob, 6)
+
+	local curVal = default
+	local function setVal(v)
+		curVal = math.clamp(math.floor(v + 0.5), min, max)
+		local r = (curVal - min) / (max - min)
+		valLbl.Text = tostring(curVal) .. (suffix or "")
+		fill.Size = UDim2.new(r, 0, 1, 0)
+		callback(curVal)
+	end
+
+	local dragging = false
+	local function update(inp)
+		local r = math.clamp((inp.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+		setVal(min + (max - min) * r)
+	end
+
+	track.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			playUISound() dragging = true update(i)
+		end
+	end)
+	TrackConn(UserInputService.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = false end
+	end))
+	TrackConn(UserInputService.InputChanged:Connect(function(i)
+		if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then update(i) end
+	end))
+
+	AllSlidersMap[labelText] = {Get = function() return curVal end, Set = setVal}
+end
+
+local function CreateToggle(parent, labelText, default, callback)
+	local state = default or false
+	local row = Instance.new("TextButton", parent)
+	row.Size = UDim2.new(1, 0, 0, 25) row.BackgroundTransparency = 1
+	row.Text = "" row.AutoButtonColor = false
+
+	local lbl = Instance.new("TextLabel", row)
+	lbl.Size = UDim2.new(1, -78, 1, 0) lbl.BackgroundTransparency = 1
+	lbl.Text = labelText lbl.Font = Enum.Font.GothamMedium lbl.TextSize = 11
+	lbl.TextColor3 = Colors.TextMain lbl.TextXAlignment = Enum.TextXAlignment.Left
+	lbl.TextTruncate = Enum.TextTruncate.AtEnd
+
+	local bindBtn = Instance.new("TextButton", row)
+	bindBtn.Size = UDim2.new(0, 32, 0, 17) bindBtn.Position = UDim2.new(1, -70, 0.5, -8)
+	bindBtn.BackgroundColor3 = Colors.ElementBg bindBtn.Text = "[...]"
+	bindBtn.Font = Enum.Font.Code bindBtn.TextSize = 9 bindBtn.TextColor3 = Colors.TextMuted
+	corner(bindBtn, 5)
+
+	local pill = Instance.new("Frame", row)
+	pill.Size = UDim2.new(0, 34, 0, 17) pill.Position = UDim2.new(1, -34, 0.5, -8)
+	pill.BackgroundColor3 = state and Colors.Accent or Colors.ElementBg
+	corner(pill, 9)
+
+	local dot = Instance.new("Frame", pill)
+	dot.Size = UDim2.new(0, 13, 0, 13)
+	dot.Position = state and UDim2.new(1, -15, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
+	dot.BackgroundColor3 = Color3.new(1, 1, 1) corner(dot, 7)
+
+	local obj = {Get = function() return state end, Pill = pill, Key = nil, BindBtn = bindBtn, Label = labelText}
+	table.insert(AccentPills, obj)
+	table.insert(CustomKeybinds, obj)
+	AllTogglesMap[labelText] = obj
+
+	function obj.Set(v)
+		state = v
+		pill.BackgroundColor3 = state and Colors.Accent or Colors.ElementBg
+		tween(dot, 0.16, {Position = state and UDim2.new(1, -15, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)})
+		callback(state)
+		refreshKeybindOverlay()
+	end
+
+	bindBtn.MouseButton1Click:Connect(function()
+		playUISound()
+		if BindingToggleObj == obj then
+			obj.Key = nil
+			bindBtn.Text = "[...]"
+			bindBtn.TextColor3 = Colors.TextMuted
+			BindingToggleObj = nil
+			refreshKeybindOverlay()
+		else
+			BindingToggleObj = obj
+			bindBtn.Text = "[?]"
+			bindBtn.TextColor3 = Colors.Accent
+		end
+	end)
+
+	row.MouseButton1Click:Connect(function() playUISound() obj.Set(not state) end)
+	RegisterQuickCmd(labelText, function() obj.Set(not state) end)
+	return obj
+end
+
+local function CreateButton(parent, labelText, btnText, callback)
+	local row = Instance.new("Frame", parent)
+	row.Size = UDim2.new(1, 0, 0, 26) row.BackgroundTransparency = 1
+
+	local lbl = Instance.new("TextLabel", row)
+	lbl.Size = UDim2.new(1, -80, 1, 0) lbl.BackgroundTransparency = 1
+	lbl.Text = labelText lbl.Font = Enum.Font.GothamMedium lbl.TextSize = 11
+	lbl.TextColor3 = Colors.TextMain lbl.TextXAlignment = Enum.TextXAlignment.Left
+	lbl.TextTruncate = Enum.TextTruncate.AtEnd
+
+	local btn = Instance.new("TextButton", row)
+	btn.Size = UDim2.new(0, 74, 0, 21) btn.Position = UDim2.new(1, -74, 0.5, -10)
+	btn.BackgroundColor3 = Colors.ElementBg btn.Text = btnText
+	btn.Font = Enum.Font.GothamBold btn.TextSize = 10 btn.TextColor3 = Colors.TextMain
+	corner(btn, 6)
+	stroke(btn, Colors.Stroke, 1)
+
+	btn.MouseButton1Click:Connect(function() playUISound() callback() end)
+	local cmdEntry = RegisterQuickCmd(labelText, callback)
+	return btn, lbl, row, cmdEntry
+end
+
+local function CreateInputRow(parent, placeholder, btnText, callback)
+	local row = Instance.new("Frame", parent)
+	row.Size = UDim2.new(1, 0, 0, 26) row.BackgroundTransparency = 1
+
+	local box = Instance.new("TextBox", row)
+	box.Size = UDim2.new(1, -66, 0, 22) box.Position = UDim2.new(0, 0, 0.5, -11)
+	box.BackgroundColor3 = Colors.ElementBg box.PlaceholderText = placeholder
+	box.PlaceholderColor3 = Colors.TextMuted box.Text = "" box.TextColor3 = Colors.TextMain
+	box.Font = Enum.Font.Gotham box.TextSize = 10 box.ClearTextOnFocus = false
+	corner(box, 6)
+	stroke(box, Colors.Stroke, 1)
+
+	local btn = Instance.new("TextButton", row)
+	btn.Size = UDim2.new(0, 60, 0, 22) btn.Position = UDim2.new(1, -60, 0.5, -11)
+	btn.BackgroundColor3 = Colors.ElementBg btn.Text = btnText
+	btn.Font = Enum.Font.GothamBold btn.TextSize = 10 btn.TextColor3 = Colors.Accent
+	corner(btn, 6)
+	stroke(btn, Colors.Stroke, 1)
+
+	btn.MouseButton1Click:Connect(function() playUISound() callback(box.Text) end)
+	return box
+end
+
+-- ============================================================================
+-- 5. KATEGORIEN & SUB-TABS SYSTEM
+-- ============================================================================
+local Categories = {}
+local FirstCat = true
+
+local function CreateCategory(icon, name)
+	local btn = Instance.new("TextButton", navScroll)
+	btn.Size = UDim2.new(1, 0, 0, 29) btn.BackgroundColor3 = Colors.GroupBg
+	btn.BackgroundTransparency = 1 btn.Text = "  " .. icon .. "   " .. name
+	btn.Font = Enum.Font.GothamMedium btn.TextSize = 11 btn.TextColor3 = Colors.TextMuted
+	btn.TextXAlignment = Enum.TextXAlignment.Left btn.AutoButtonColor = false
+	corner(btn, 7)
+
+	local subTabs = {}
+	local firstSub = true
+
+	local function activateCategory()
+		for _, c in ipairs(Categories) do
+			c.Btn.BackgroundTransparency = 1 c.Btn.TextColor3 = Colors.TextMuted
+			for _, st in ipairs(c.SubTabs) do st.Btn.Visible = false st.Page.Visible = false end
+		end
+		btn.BackgroundTransparency = 0 btn.TextColor3 = Colors.TextMain
+
+		local activeSub = subTabs[1]
+		for _, st in ipairs(subTabs) do
+			st.Btn.Visible = true
+			if st.Active then activeSub = st end
+		end
+		if activeSub then activeSub.Select() end
+	end
+
+	btn.MouseButton1Click:Connect(function() playUISound() activateCategory() end)
+	table.insert(Categories, {Btn = btn, SubTabs = subTabs, Activate = activateCategory})
+
+	local CatAPI = {}
+	function CatAPI:AddSubTab(subIcon, subName)
+		local sBtn = Instance.new("TextButton", subTabHolder)
+		sBtn.Size = UDim2.new(0, 0, 0, 26) sBtn.AutomaticSize = Enum.AutomaticSize.X
+		sBtn.BackgroundColor3 = Colors.GroupBg sBtn.BackgroundTransparency = 1
+		sBtn.Text = " " .. subIcon .. " " .. subName .. " "
+		sBtn.Font = Enum.Font.GothamBold sBtn.TextSize = 10 sBtn.TextColor3 = Colors.TextMuted
+		sBtn.Visible = false corner(sBtn, 7)
+		local sStroke = stroke(sBtn, Colors.Stroke, 1) sStroke.Enabled = false
+
+		local page = Instance.new("Frame", pagesContainer)
+		page.Size = UDim2.new(1, 0, 1, 0) page.BackgroundTransparency = 1 page.Visible = false
+
+		local leftCol = Instance.new("ScrollingFrame", page)
+		leftCol.Size = UDim2.new(0.49, 0, 1, 0) leftCol.BackgroundTransparency = 1
+		leftCol.ScrollBarThickness = 2 leftCol.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		leftCol.CanvasSize = UDim2.new(0, 0, 0, 0)
+		local lList = Instance.new("UIListLayout", leftCol) lList.Padding = UDim.new(0, 10)
+
+		local rightCol = Instance.new("ScrollingFrame", page)
+		rightCol.Size = UDim2.new(0.49, 0, 1, 0) rightCol.Position = UDim2.new(0.51, 0, 0, 0)
+		rightCol.BackgroundTransparency = 1 rightCol.ScrollBarThickness = 2
+		rightCol.AutomaticCanvasSize = Enum.AutomaticSize.Y rightCol.CanvasSize = UDim2.new(0, 0, 0, 0)
+		local rList = Instance.new("UIListLayout", rightCol) rList.Padding = UDim.new(0, 10)
+
+		local subEntry = {Btn = sBtn, Page = page, Active = firstSub, Stroke = sStroke}
+		function subEntry.Select()
+			for _, st in ipairs(subTabs) do
+				st.Active = false st.Page.Visible = false
+				st.Btn.BackgroundTransparency = 1 st.Btn.TextColor3 = Colors.TextMuted
+				st.Stroke.Enabled = false
+			end
+			subEntry.Active = true page.Visible = true
+			sBtn.BackgroundTransparency = 0 sBtn.TextColor3 = Colors.TextMain
+			sStroke.Enabled = true
+		end
+
+		sBtn.MouseButton1Click:Connect(function() playUISound() subEntry.Select() end)
+		table.insert(subTabs, subEntry)
+		if firstSub then firstSub = false end
+
+		local SubAPI = {}
+		function SubAPI:AddGroupbox(column, title)
+			local targetCol = (column == "Right") and rightCol or leftCol
+			local box = Instance.new("Frame", targetCol)
+			box.Size = UDim2.new(1, 0, 0, 0) box.AutomaticSize = Enum.AutomaticSize.Y
+			box.BackgroundColor3 = Colors.GroupBg corner(box, 9) stroke(box, Colors.Stroke, 1)
+
+			local pad = Instance.new("UIPadding", box)
+			pad.PaddingTop = UDim.new(0, 9) pad.PaddingBottom = UDim.new(0, 11)
+			pad.PaddingLeft = UDim.new(0, 11) pad.PaddingRight = UDim.new(0, 11)
+
+			local boxLayout = Instance.new("UIListLayout", box) boxLayout.Padding = UDim.new(0, 7)
+
+			local header = Instance.new("TextLabel", box)
+			header.Size = UDim2.new(1, 0, 0, 16) header.BackgroundTransparency = 1
+			header.Text = "◈  " .. title header.Font = Enum.Font.GothamBold header.TextSize = 11
+			header.TextColor3 = Colors.TextMain header.TextXAlignment = Enum.TextXAlignment.Left
+
+			local BoxAPI = {Frame = box}
+			function BoxAPI:Slider(lbl, min, max, def, suf, cb) return CreateSlider(box, lbl, min, max, def, suf, cb) end
+			function BoxAPI:Toggle(lbl, def, cb) return CreateToggle(box, lbl, def, cb) end
+			function BoxAPI:Button(lbl, btnTxt, cb) return CreateButton(box, lbl, btnTxt, cb) end
+			function BoxAPI:Input(ph, btnTxt, cb) return CreateInputRow(box, ph, btnTxt, cb) end
+			return BoxAPI
+		end
+		return SubAPI
+	end
+
+	if FirstCat then FirstCat = false task.defer(activateCategory) end
+	return CatAPI
+end
+
+-- ============================================================================
+-- 6. KATEGORIEN & ALLE MODULE
+-- ============================================================================
+local CatPlayers = CreateCategory("👥", "Player & Troll Hub")
+local CatCombat  = CreateCategory("🎯", "Combat & ESP")
+local CatMove    = CreateCategory("⚡", "Parkour & Physics")
+local CatVisuals = CreateCategory("🎥", "Camera & Shaders")
+local CatLevel   = CreateCategory("📐", "Level & Inspector")
+local CatDev     = CreateCategory("🛠️", "Audio, Macros & Spy")
+local CatNotify  = CreateCategory("🔔", "Notify & Alerts")
+
+-- ----------------------------------------------------------------------------
+-- NEU: 1. PLAYER & TROLL HUB (ORBIT, FLING, BACKPACK, HEADSIT, CHAR MODS)
+-- ----------------------------------------------------------------------------
+local SubTroll1 = CatPlayers:AddSubTab("🤡", "Target Actions & Troll")
+local SubTroll2 = CatPlayers:AddSubTab("✨", "Self Visuals & Fun")
+
+local gTargetSelect = SubTroll1:AddGroupbox("Left", "1. Ziel-Auswahl (Spieler & Dummies)")
+local _, selectedLbl = gTargetSelect:Button("Aktuelles Ziel: Keins", "Clear", function()
+	State.SelectedTarget = nil
+	State.OrbitTarget = false
+	State.BackpackAttach = false
+	State.HeadSit = false
+	State.FlingActive = false
+end)
+
+local function getTargetRoot()
+	if not State.SelectedTarget or not State.SelectedTarget.Char then return nil end
+	return State.SelectedTarget.Char:FindFirstChild("HumanoidRootPart")
+end
+
+local targetSelectRows = {}
+local function rebuildTargetSelector()
+	for _, r in ipairs(targetSelectRows) do
+		if r.Row then r.Row:Destroy() end
+	end
+	table.clear(targetSelectRows)
+
+	for _, t in ipairs(GetCombatTargets()) do
+		local _, _, row = gTargetSelect:Button("🎯 " .. t.Name, "Select", function()
+			State.SelectedTarget = t
+			selectedLbl.Text = "Ziel: " .. t.Name
+			Notify("Player Hub", t.Name .. " als Ziel ausgewählt!", "Success")
+		end)
+		table.insert(targetSelectRows, {Row = row})
+	end
+end
+
+gTargetSelect:Button("Ziel-Liste aktualisieren", "Refresh", rebuildTargetSelector)
+
+local gTrollActions = SubTroll1:AddGroupbox("Right", "2. Troll-Aktionen auf Ziel")
+gTrollActions:Button("Teleport zum Ziel", "Goto", function()
+	local tr = getTargetRoot()
+	if tr and CachedRoot then
+		CachedRoot.CFrame = tr.CFrame * CFrame.new(0, 0, 3)
+	else
+		Notify("Troll Hub", "Bitte zuerst links ein Ziel auswählen!", "Warn")
+	end
+end)
+
+gTrollActions:Button("Bring Target (Client-Side)", "Bring", function()
+	local tr = getTargetRoot()
+	if tr and CachedRoot then
+		tr.CFrame = CachedRoot.CFrame * CFrame.new(0, 0, -4)
+		Notify("Troll Hub", State.SelectedTarget.Name .. " vor dich gezogen!", "Success")
+	end
+end)
+
+gTrollActions:Toggle("Orbit Target (Kreisen)", false, function(s) State.OrbitTarget = s end)
+gTrollActions:Slider("Orbit Speed", 1, 15, 4, "x", function(v) State.OrbitSpeed = v end)
+gTrollActions:Slider("Orbit Radius", 3, 25, 8, " st", function(v) State.OrbitRadius = v end)
+
+gTrollActions:Toggle("Attach to Back (Rucksack)", false, function(s) State.BackpackAttach = s end)
+gTrollActions:Toggle("Head-Sit (Auf Kopf sitzen)", false, function(s)
+	State.HeadSit = s
+	if not s and CachedHum then CachedHum.Sit = false end
+end)
+
+gTrollActions:Toggle("Spin-Fling Target (Physik-Schleuder)", false, function(s)
+	State.FlingActive = s
+	if not s and CachedRoot then
+		CachedRoot.AssemblyAngularVelocity = Vector3.zero
+		CachedRoot.AssemblyLinearVelocity = Vector3.zero
+	end
+end)
+
+gTrollActions:Toggle("Ziel einfrieren (Freeze Client)", false, function(s)
+	State.FreezeTarget = s
+	local tr = getTargetRoot()
+	if tr then tr.Anchored = s end
+end)
+
+gTrollActions:Button("Avatar-Outfit kopieren (Look)", "Copy", function()
+	if State.SelectedTarget and State.SelectedTarget.UserId and CachedHum then
+		task.spawn(function()
+			local ok, desc = pcall(function()
+				return Players:GetHumanoidDescriptionFromUserId(State.SelectedTarget.UserId)
+			end)
+			if ok and desc then
+				pcall(function() CachedHum:ApplyDescriptionClientServer(desc) end)
+				Notify("Avatar Copy", "Outfit übernommen!", "Success")
+			else
+				Notify("Avatar Copy", "Konnte im Studio nicht geladen werden.", "Warn")
+			end
+		end)
+	end
+end)
+
+-- SubTab 2: Self Visuals & Fun
+local gSelfFx = SubTroll2:AddGroupbox("Left", "Cyberpunk & Body Mods")
+gSelfFx:Toggle("Sandevistan Ghost-Trail (Nachbilder)", false, function(s)
+	State.GhostTrail = s
+	if not s then ghostFolder:ClearAllChildren() end
+end)
+gSelfFx:Toggle("Forcefield / Neon Body Chams", false, function(s)
+	State.ForcefieldBody = s
+	applyBodyMaterial(s)
+end)
+gSelfFx:Toggle("Headless Mode (Lokal)", false, function(s)
+	State.HeadlessLocal = s
+	if CachedChar and CachedChar:FindFirstChild("Head") then
+		CachedChar.Head.Transparency = s and 1 or 0
+		local face = CachedChar.Head:FindFirstChildOfClass("Decal")
+		if face then face.Transparency = s and 1 or 0 end
+	end
+end)
+
+local gSelfTroll = SubTroll2:AddGroupbox("Right", "Spinbot, Fake-Lag & Physics")
+gSelfTroll:Toggle("Spinbot / Anti-Aim (360° Rotation)", false, function(s) State.Spinbot = s end)
+gSelfTroll:Slider("Spinbot Geschwindigkeit", 5, 100, 35, "", function(v) State.SpinSpeed = v end)
+gSelfTroll:Toggle("Fake-Lag (Stotter-Bewegung)", false, function(s)
+	State.FakeLag = s
+	if not s and CachedRoot then CachedRoot.Anchored = false end
+end)
+gSelfTroll:Toggle("Swim-in-Air (Luftschwimmen)", false, function(s)
+	State.SwimInAir = s
+	if CachedHum then
+		CachedHum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, not s)
+		if s then CachedHum:ChangeState(Enum.HumanoidStateType.Swimming) end
+	end
+end)
+
+-- ----------------------------------------------------------------------------
+-- 2. COMBAT, ESP, CROSSHAIR & DUMMY SPAWNER
+-- ----------------------------------------------------------------------------
+local SubCombat1 = CatCombat:AddSubTab("🎯", "Aim, Trigger & Dummies")
+local SubCombat2 = CatCombat:AddSubTab("👁️", "ESP, Crosshair & Radar")
+
+local gAim = SubCombat1:AddGroupbox("Left", "Aim-Lock & Triggerbot")
+gAim:Toggle("Aim-Assist [Rechtsklick]", false, function(s) State.AimAssist = s end)
+gAim:Toggle("Triggerbot (Auto-Fire auf Ziel)", false, function(s) State.Triggerbot = s end)
+gAim:Toggle("Target-Info-HUD einblenden", true, function(s) State.TargetHUD = s end)
+gAim:Toggle("FOV-Kreis einblenden", false, function(s)
+	State.ShowFOVCircle = s
+	fovCircle.Visible = s and not State.Streamproof
+end)
+gAim:Slider("FOV Radius", 40, 350, 140, " px", function(v)
+	State.AimFOV = v
+	fovCircle.Size = UDim2.new(0, v * 2, 0, v * 2)
+end)
+gAim:Slider("Aim Smoothness", 5, 100, 25, "%", function(v) State.AimSmoothness = v end)
+gAim:Toggle("Team-Check", false, function(s) State.AimTeamCheck = s end)
+gAim:Toggle("Wall-Check (Raycast)", true, function(s) State.AimWallCheck = s end)
+
+local targetBtn
+targetBtn = gAim:Button("Ziel-Körperteil wechseln", "Head", function()
+	State.AimTargetPart = (State.AimTargetPart == "Head") and "HumanoidRootPart" or "Head"
+	targetBtn.Text = (State.AimTargetPart == "Head") and "Head" or "Torso"
+	Notify("Combat", "Ziel-Part geändert auf: " .. State.AimTargetPart, "Info")
+end)
+
+local gDummy = SubCombat1:AddGroupbox("Right", "NPC Dummy-Spawner & Hitbox")
+local function spawnTestDummy(patrol)
+	if not CachedRoot then return end
+	local model = Instance.new("Model", workspace)
+	model.Name = patrol and ("PatrolDummy_" .. (#spawnedDummies + 1)) or ("TestDummy_" .. (#spawnedDummies + 1))
+
+	local hum = Instance.new("Humanoid", model)
+	hum.MaxHealth = 100 hum.Health = 100
+
+	local spawnPos = CachedRoot.Position + (CachedRoot.CFrame.LookVector * 12) + Vector3.new(0, 3, 0)
+
+	local hrp = Instance.new("Part", model)
+	hrp.Name = "HumanoidRootPart"
+	hrp.Size = Vector3.new(2, 2, 1)
+	hrp.CFrame = CFrame.new(spawnPos)
+	hrp.Anchored = false
+	hrp.CanCollide = true
+	hrp.Color = Colors.Accent
+	hrp.Material = Enum.Material.SmoothPlastic
+
+	local head = Instance.new("Part", model)
+	head.Name = "Head"
+	head.Size = Vector3.new(1.6, 1.6, 1.6)
+	head.CFrame = hrp.CFrame * CFrame.new(0, 1.8, 0)
+	head.CanCollide = true
+	head.Color = Color3.fromRGB(245, 205, 150)
+	head.Material = Enum.Material.SmoothPlastic
+	local weld = Instance.new("WeldConstraint", hrp)
+	weld.Part0 = hrp weld.Part1 = head
+
+	model.PrimaryPart = hrp
+	table.insert(spawnedDummies, model)
+	rebuildTargetSelector()
+
+	if patrol then
+		hrp.Anchored = true
+		task.spawn(function()
+			local t = 0
+			local rightVec = CachedRoot.CFrame.RightVector
+			while State.Running and model and model.Parent and hum.Health > 0 do
+				if not State.FreezeTarget then
+					t += 0.04
+					local offset = rightVec * (math.sin(t) * 10)
+					hrp.CFrame = CFrame.new(spawnPos + offset)
+				end
+				task.wait(0.02)
+			end
+		end)
+	end
+	Notify("Dummy-Spawner", model.Name .. " gespawnt (Auch im Troll-Hub wählbar)!", "Success")
+end
+
+gDummy:Button("Physik-Dummy spawnen (Fling-bar)", "Spawn", function() spawnTestDummy(false) end)
+gDummy:Button("Patrol-Dummy spawnen (Laufend)", "Patrol", function() spawnTestDummy(true) end)
+gDummy:Button("Alle Dummies entfernen", "Clear", function()
+	for _, d in ipairs(spawnedDummies) do if d then d:Destroy() end end
+	table.clear(spawnedDummies)
+	espFolder:ClearAllChildren()
+	rebuildTargetSelector()
+	Notify("Dummy-Spawner", "Alle Test-Dummies gelöscht.", "Warn")
+end)
+
+local function resetHitboxes()
+	for _, t in ipairs(GetCombatTargets()) do
+		local hrp = t.Char and t.Char:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			hrp.Size = Vector3.new(2, 2, 1)
+			hrp.Transparency = (string.sub(t.Id, 1, 5) == "Dummy") and 0 or 1
+		end
+	end
+end
+
+gDummy:Toggle("Hitbox-Expander", false, function(s)
+	State.HitboxExpander = s
+	if not s then resetHitboxes() end
+end)
+gDummy:Slider("Hitbox-Größe", 2, 20, 6, " st", function(v) State.HitboxSize = v end)
+
+local gESP = SubCombat2:AddGroupbox("Left", "ESP, 2D-Tracers & Farben")
+gESP:Toggle("3D Chams (Highlight)", false, function(s) State.ESPChams = s end)
+gESP:Toggle("Overhead Info (Name/HP/Distanz)", false, function(s) State.ESPNametags = s end)
+gESP:Toggle("2D-Tracers (Snaplines)", false, function(s)
+	State.ESPTracers = s
+	if not s then tracerContainer:ClearAllChildren() end
+end)
+gESP:Toggle("Team-Farben verwenden", false, function(s) State.ESPTeamColors = s end)
+
+local gCross = SubCombat2:AddGroupbox("Right", "Custom Crosshair & 2D Radar")
+gCross:Toggle("Custom Crosshair einblenden", false, function(s)
+	State.CustomCrosshair = s
+	crosshairHolder.Visible = s and not State.Streamproof
+end)
+gCross:Toggle("Rotierendes Fadenkreuz (Spin)", false, function(s)
+	State.CrosshairSpin = s
+	if not s then crosshairHolder.Rotation = 0 end
+end)
+gCross:Slider("Fadenkreuz-Größe", 6, 36, 14, " px", function(v)
+	State.CrosshairSize = v
+	chH.Size = UDim2.new(0, v, 0, 2)
+	chV.Size = UDim2.new(0, 2, 0, v)
+end)
+gCross:Toggle("2D Radar / Minimap", false, function(s)
+	State.ShowRadar = s
+	radarFrame.Visible = s and not State.Streamproof
+end)
+
+-- ----------------------------------------------------------------------------
+-- 3. PARKOUR, TELEPORT, PART-MAGNET & KNOCKBACK-GUN
+-- ----------------------------------------------------------------------------
+local SubMove1 = CatMove:AddSubTab("🏃", "Parkour & Anti-Void")
+local SubMove2 = CatMove:AddSubTab("🧲", "Physics Sandbox & TP")
+
+local gParkour = SubMove1:AddGroupbox("Left", "Parkour, Jump & Anti-Void")
+gParkour:Toggle("Auto-Bhop (Bunnyhop)", false, function(s) State.AutoBhop = s end)
+gParkour:Toggle("Infinite Jump (Luftsprung)", false, function(s) State.InfiniteJump = s end)
+gParkour:Toggle("Spider-Climb (Wandklettern)", false, function(s) State.SpiderClimb = s end)
+gParkour:Toggle("Anti-Void Schutz (Kein Abgrund-Tod)", true, function(s) State.AntiVoid = s end)
+gParkour:Toggle("Air-Walk Plattform (Schwebeboden)", false, function(s)
+	State.AirWalk = s
+	if s and CachedRoot then
+		State.AirWalkY = CachedRoot.Position.Y - 3.3
+		if not airWalkPart then
+			airWalkPart = Instance.new("Part", workspace)
+			airWalkPart.Name = "TestProAirWalk"
+			airWalkPart.Size = Vector3.new(9, 0.6, 9)
+			airWalkPart.Anchored = true
+			airWalkPart.Transparency = 0.55
+			airWalkPart.Material = Enum.Material.Neon
+			airWalkPart.Color = Colors.Accent
+		end
+	elseif not s and airWalkPart then
+		airWalkPart:Destroy() airWalkPart = nil
+	end
+end)
+gParkour:Toggle("Zero-G Float (Schweben)", false, function(s) State.ZeroG = s updateZeroG() end)
+gParkour:Slider("Welt-Schwerkraft (Gravity)", 20, 400, 196, "", function(v) workspace.Gravity = v end)
+
+local gBaseMove = SubMove1:AddGroupbox("Right", "Speed, Flight & Click-TP")
+gBaseMove:Slider("Walk Speed", 16, 200, 16, " st/s", function(v) State.WalkSpeed = v end)
+gBaseMove:Slider("Jump Power", 50, 300, 50, "", function(v) State.JumpPower = v end)
+gBaseMove:Slider("Fly Speed", 25, 250, 85, " st/s", function(v) State.FlySpeed = v end)
+gBaseMove:Toggle("3D Fly Modus (LinearVelocity)", false, function(s)
+	State.Fly = s
+	if not s then cleanupFlyConstraints() end
+end)
+gBaseMove:Toggle("Noclip (No Collision)", false, function(s)
+	State.Noclip = s
+	if not s then for _, p in ipairs(CachedParts) do if p and p.Parent then p.CanCollide = true end end end
+end)
+gBaseMove:Toggle("Click-Teleport [Strg + Linksklick]", false, function(s) State.ClickTP = s end)
+gBaseMove:Toggle("Auto-Respawn at Death-Pos", false, function(s) State.AutoRespawnPos = s end)
+
+local gSandbox = SubMove2:AddGroupbox("Left", "Physik-Sandbox & Auras")
+gSandbox:Toggle("Part-Magnet (Lose Teile kreisen)", false, function(s) State.PartMagnet = s end)
+gSandbox:Toggle("Knockback-Impulse Gun [Alt+Klick]", false, function(s) State.KnockbackGun = s end)
+gSandbox:Toggle("Instant ProximityPrompt (0s Hold)", false, function(s) State.InstantPrompt = s end)
+gSandbox:Toggle("ClickDetector-Aura (Auto-Schalter)", false, function(s) State.ClickAura = s end)
+gSandbox:Toggle("Vehicle-Nitro [Links-Shift]", false, function(s) State.VehicleNitro = s end)
+
+local gWaypoints = SubMove2:AddGroupbox("Right", "Waypoint-Manager")
+gWaypoints:Input("Waypoint Name (z.B. Dach)...", "Save", function(name)
+	if not CachedRoot then return end
+	local wpName = (name ~= "" and name) or ("Waypoint #" .. math.random(10, 99))
+	local savedCF = CachedRoot.CFrame
+	gWaypoints:Button("📍 " .. wpName, "TP", function()
+		if CachedRoot then
+			CachedRoot.CFrame = savedCF
+			Notify("Waypoint", "Teleportiert zu: " .. wpName, "Success")
+		end
+	end)
+	Notify("Waypoint", "'" .. wpName .. "' gespeichert!", "Success")
+end)
+
+-- ----------------------------------------------------------------------------
+-- 4. CAMERA, X-RAY VISION & SHADERS
+-- ----------------------------------------------------------------------------
+local SubVis1 = CatVisuals:AddSubTab("🎬", "Freecam, Zoom & Spectate")
+local SubVis2 = CatVisuals:AddSubTab("🌈", "X-Ray, Shaders & World")
+
+local freecamCF = camera.CFrame
+local gFreecam = SubVis1:AddGroupbox("Left", "True Freecam & Zoom Unlocker")
+gFreecam:Toggle("True Freecam (WASD Entkoppelt)", false, function(s)
+	State.Freecam = s
+	if s then
+		freecamCF = camera.CFrame
+		camera.CameraType = Enum.CameraType.Scriptable
+		if CachedRoot then CachedRoot.Anchored = true end
+	else
+		camera.CameraType = Enum.CameraType.Custom
+		if CachedRoot then CachedRoot.Anchored = false end
+		if CachedHum then camera.CameraSubject = CachedHum end
+	end
+end)
+gFreecam:Slider("Freecam Speed", 20, 200, 65, " st/s", function(v) State.FreecamSpeed = v end)
+gFreecam:Toggle("Third-Person Max-Zoom Unlocker", false, function(s)
+	player.CameraMaxZoomDistance = s and 1000 or OrigLighting.MaxZoom
+end)
+gFreecam:Button("Spectate beenden (Eigene Sicht)", "Reset", function()
+	if CachedHum then camera.CameraSubject = CachedHum end
+end)
+
+local gDolly = SubVis1:AddGroupbox("Right", "Dolly-Cam & Lens Effects")
+local camWaypoints = {}
+gDolly:Button("Kamera-Punkt speichern", "Add Point", function()
+	table.insert(camWaypoints, camera.CFrame)
+	Notify("Dolly-Cam", "Punkt #" .. #camWaypoints .. " gespeichert!", "Success")
+end)
+gDolly:Button("Kamerafahrt abspielen", "Play Tour", function()
+	if #camWaypoints < 2 then Notify("Dolly-Cam", "Mindestens 2 Punkte speichern!", "Warn") return end
+	task.spawn(function()
+		camera.CameraType = Enum.CameraType.Scriptable
+		camera.CFrame = camWaypoints[1]
+		for i = 2, #camWaypoints do
+			if not State.Running then break end
+			local tw = TweenService:Create(camera, TweenInfo.new(2.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {CFrame = camWaypoints[i]})
+			tw:Play() tw.Completed:Wait()
+		end
+		camera.CameraType = Enum.CameraType.Custom
+	end)
+end)
+gDolly:Toggle("Depth-of-Field (Tiefenschärfe)", false, function(s) dofEffect.Enabled = s end)
+gDolly:Toggle("FoV-Speed-Dynamic", false, function(s)
+	State.DynamicFOV = s
+	if not s then camera.FieldOfView = State.BaseFOV end
+end)
+gDolly:Slider("Basis Field of View", 30, 120, 70, "°", function(v) State.BaseFOV = v camera.FieldOfView = v end)
+
+local gXray = SubVis2:AddGroupbox("Left", "X-Ray Vision & Fullbright")
+gXray:Toggle("X-Ray Vision (Wände halbtransparent)", false, function(s)
+	State.XRayVision = s
+	if s then
+		for _, obj in ipairs(workspace:GetDescendants()) do
+			if obj:IsA("BasePart") and not obj:IsDescendantOf(CachedChar or player.Character) and obj.Name ~= "Terrain" then
+				xrayOriginal[obj] = obj.LocalTransparencyModifier
+				obj.LocalTransparencyModifier = 0.65
+			end
+		end
+	else
+		for part, orig in pairs(xrayOriginal) do
+			if part and part.Parent then part.LocalTransparencyModifier = orig end
+		end
+		table.clear(xrayOriginal)
+	end
+end)
+gXray:Toggle("Fullbright & No-Fog", false, function(s)
+	State.Fullbright = s
+	if s then
+		Lighting.Brightness = 2.5 Lighting.GlobalShadows = false Lighting.FogEnd = 100000
+		Lighting.Ambient = Color3.fromRGB(185, 185, 185) Lighting.OutdoorAmbient = Color3.fromRGB(185, 185, 185)
+	else
+		Lighting.Brightness = OrigLighting.Brightness Lighting.GlobalShadows = OrigLighting.GlobalShadows
+		Lighting.FogEnd = OrigLighting.FogEnd Lighting.Ambient = OrigLighting.Ambient Lighting.OutdoorAmbient = OrigLighting.OutdoorAmbient
+	end
+end)
+gXray:Slider("Uhrzeit (Time of Day)", 0, 24, math.floor(Lighting.ClockTime), "h", function(v) Lighting.ClockTime = v end)
+
+local gShader = SubVis2:AddGroupbox("Right", "Color-Grading Shaders")
+gShader:Button("Shader: Cyberpunk Neon", "Apply", function()
+	ccShader.Enabled = true ccShader.Contrast = 0.35 ccShader.Saturation = 0.5
+	ccShader.TintColor = Color3.fromRGB(255, 210, 245)
+end)
+gShader:Button("Shader: Nightvision (Grün)", "Apply", function()
+	ccShader.Enabled = true ccShader.Contrast = 0.4 ccShader.Saturation = -0.8
+	ccShader.TintColor = Color3.fromRGB(120, 255, 140)
+end)
+gShader:Button("Shader: Noir (Schwarz-Weiß)", "Apply", function()
+	ccShader.Enabled = true ccShader.Contrast = 0.3 ccShader.Saturation = -1
+	ccShader.TintColor = Color3.new(1, 1, 1)
+end)
+gShader:Button("Shader zurücksetzen (Normal)", "Reset", function()
+	ccShader.Enabled = false
+end)
+
+-- ----------------------------------------------------------------------------
+-- 5. LEVEL-DESIGN, PART-INSPECTOR & INVISIBLE WALL VIEWER
+-- ----------------------------------------------------------------------------
+local SubLvl = CatLevel:AddSubTab("📐", "Inspector, Walls & Ruler")
+local gInsp = SubLvl:AddGroupbox("Left", "Part-Inspector & Barrieren")
+gInsp:Toggle("Mouse-Part-Inspector [Strg+Alt]", false, function(s)
+	State.PartInspector = s
+	if not s then inspectorCard.Visible = false end
+end)
+gInsp:Toggle("Unsichtbare Wände hervorheben", false, function(s)
+	State.ShowInvisWalls = s
+	if s then
+		for _, obj in ipairs(workspace:GetDescendants()) do
+			if obj:IsA("BasePart") and obj.Transparency >= 0.95 and obj.CanCollide and not obj:IsDescendantOf(CachedChar or player.Character) then
+				invisWallsOriginal[obj] = obj.LocalTransparencyModifier
+				obj.LocalTransparencyModifier = -0.6
+			end
+		end
+	else
+		for part, orig in pairs(invisWallsOriginal) do
+			if part and part.Parent then part.LocalTransparencyModifier = orig end
+		end
+		table.clear(invisWallsOriginal)
+	end
+end)
+
+local deletedStack = {}
+gInsp:Toggle("Klick-Löschen aktivieren", false, function(s) State.LocalDeleteMode = s end)
+gInsp:Button("Letztes Objekt wiederherstellen", "Undo", function()
+	local last = table.remove(deletedStack)
+	if last and last.Part then
+		last.Part.Parent = last.Parent
+		Notify("Undo-Manager", last.Part.Name .. " wiederhergestellt!", "Success")
+	end
+end)
+
+local gRuler = SubLvl:AddGroupbox("Right", "Distance- & Height-Ruler")
+gRuler:Toggle("Distanz-Messer (2 Punkte anklicken)", false, function(s) State.RulerMode = s end)
+local _, rulerResLbl = gRuler:Button("Distanz: 0.0 Studs (0.0m)", "Info", function() end)
+
+-- ----------------------------------------------------------------------------
+-- 6. BOOMBOX AUDIO-PLAYER, MACROS & REMOTESPY
+-- ----------------------------------------------------------------------------
+local SubDev = CatDev:AddSubTab("🎵", "Boombox, Macros & Spy")
+local gBoom = SubDev:AddGroupbox("Left", "In-Game Boombox & Macro")
+gBoom:Input("Roblox SoundId (z.B. 1848354536)...", "Play", function(idTxt)
+	local cleanId = string.match(idTxt, "%d+")
+	if cleanId then
+		boomboxSound.SoundId = "rbxassetid://" .. cleanId
+		boomboxSound:Play()
+		Notify("Boombox", "Spiele Audio-ID: " .. cleanId, "Success")
+	end
+end)
+gBoom:Button("Boombox stoppen", "Stop", function() boomboxSound:Stop() end)
+gBoom:Slider("Audio Pitch / Speed (Nightcore)", 50, 200, 100, "%", function(v)
+	boomboxSound.PlaybackSpeed = v / 100
+end)
+
+local _, macroStatLbl = gBoom:Button("Macro Frames: 0", "Info", function() end)
+gBoom:Toggle("Movement-Macro aufzeichnen", false, function(s)
+	State.MacroRecording = s
+	if s then table.clear(macroFrames) end
+end)
+gBoom:Button("Macro abspielen (Replay)", "Play", function()
+	if #macroFrames == 0 or State.MacroPlaying then return end
+	State.MacroPlaying = true
+	task.spawn(function()
+		for i = 1, #macroFrames do
+			if not State.Running or not State.MacroPlaying or not CachedRoot then break end
+			CachedRoot.CFrame = macroFrames[i]
+			RunService.RenderStepped:Wait()
+		end
+		State.MacroPlaying = false
+	end)
+end)
+
+local gSpy = SubDev:AddGroupbox("Right", "RemoteSpy & Auto-Clicker")
+gSpy:Toggle("Auto-Clicker aktivieren", false, function(s) State.AutoClicker = s end)
+gSpy:Slider("Klicks pro Sekunde (CPS)", 1, 30, 10, " CPS", function(v) State.ClickCPS = v end)
+gSpy:Toggle("Anti-AFK (Kein 20-Min Kick)", true, function(s) State.AntiAFK = s end)
+
+local spyLbl = Instance.new("TextLabel", gSpy.Frame)
+spyLbl.Size = UDim2.new(1, 0, 0, 90)
+spyLbl.BackgroundColor3 = Colors.ElementBg
+spyLbl.Text = " > Warte auf RemoteEvent-Aufrufe..."
+spyLbl.Font = Enum.Font.Code spyLbl.TextSize = 10 spyLbl.TextColor3 = Colors.TextMain
+spyLbl.TextXAlignment = Enum.TextXAlignment.Left spyLbl.TextYAlignment = Enum.TextYAlignment.Top
+spyLbl.TextWrapped = true corner(spyLbl, 6)
+
+local spyLogs = {}
+local function hookRemote(inst)
+	if inst:IsA("RemoteEvent") then
+		TrackConn(inst.OnClientEvent:Connect(function(...)
+			local args = {...}
+			local preview = {}
+			for i = 1, math.min(#args, 3) do
+				table.insert(preview, typeof(args[i]) .. ":" .. tostring(args[i]))
+			end
+			table.insert(spyLogs, 1, string.format("[%s] %s(%s)", os.date("%H:%M:%S"), inst.Name, table.concat(preview, ", ")))
+			if #spyLogs > 5 then table.remove(spyLogs) end
+			if spyLbl and spyLbl.Parent then spyLbl.Text = table.concat(spyLogs, "\n") end
+		end))
+	end
+end
+for _, inst in ipairs(game:GetDescendants()) do hookRemote(inst) end
+TrackConn(game.DescendantAdded:Connect(hookRemote))
+
+-- ----------------------------------------------------------------------------
+-- 7. NOTIFY HISTORY & CHAT-KEYWORD-ALERT
+-- ----------------------------------------------------------------------------
+local SubNot = CatNotify:AddSubTab("📜", "History & Chat-Alerts")
+local gHist = SubNot:AddGroupbox("Left", "Notification-History-Log")
+historyLabelRef = Instance.new("TextLabel", gHist.Frame)
+historyLabelRef.Size = UDim2.new(1, 0, 0, 165)
+historyLabelRef.BackgroundColor3 = Colors.ElementBg
+historyLabelRef.Text = " > Keine Benachrichtigungen bisher..."
+historyLabelRef.Font = Enum.Font.Code historyLabelRef.TextSize = 10 historyLabelRef.TextColor3 = Colors.TextMain
+historyLabelRef.TextXAlignment = Enum.TextXAlignment.Left historyLabelRef.TextYAlignment = Enum.TextYAlignment.Top
+historyLabelRef.TextWrapped = true corner(historyLabelRef, 6)
+
+local gAlert = SubNot:AddGroupbox("Right", "Chat-Keyword-Alert")
+gAlert:Input("Alarm-Wort (Standard: Dein Name)...", "Setzen", function(txt)
+	if txt ~= "" then
+		State.ChatAlertKeyword = txt
+		Notify("Chat-Alert", "Alarm aktiv für Wort: '" .. txt .. "'", "Success")
+	end
+end)
+gAlert:Button("Alle Notify-Typen testen", "Test", function()
+	Notify("Info", "Standard-Meldung", "Info")
+	Notify("Success", "Erfolgreich ausgeführt", "Success")
+	Notify("Warning", "Achtung Hinweis", "Warn")
+	Notify("Alert", "Kritischer Alarm", "Alert")
+end)
+
+-- ============================================================================
+-- 8. SETTINGS PANEL RECHTS (THEMES, OVERLAYS & JSON CONFIG SAVE/LOAD)
+-- ============================================================================
+CreateSlider(setContent, "Menu Scaling", 75, 125, 100, "%", function(v) masterScale.Scale = v / 100 end)
+CreateSlider(setContent, "Background Opacity", 0, 50, 5, "%", function(v)
+	local t = v / 100
+	mainWin.BackgroundTransparency = t sidebar.BackgroundTransparency = t settingsWin.BackgroundTransparency = t
+end)
+CreateSlider(setContent, "Background Blurness", 0, 24, 0, "px", function(v)
+	State.BlurSize = v
+	menuBlur.Size = (mainContainer.Visible and not State.Streamproof) and v or 0
+end)
+CreateToggle(setContent, "Active Keybind-List Overlay", true, function(s)
+	State.ShowKeybindList = s
+	keybindOverlay.Visible = s and not State.Streamproof
+end)
+CreateToggle(setContent, "Floating Mini-Kompass", true, function(s) State.ShowCompass = s compassBox.Visible = s end)
+CreateToggle(setContent, "Screen-Grid (UI-Raster)", false, function(s) State.ShowScreenGrid = s screenGrid.Visible = s end)
+CreateToggle(setContent, "UI Klick-Sounds", true, function(s) State.UISounds = s end)
+
+-- Theme-Manager
+CreateButton(setContent, "Theme: Cyberpunk Pink", "Apply", function() ApplyAccent(Color3.fromRGB(232, 118, 178)) end)
+CreateButton(setContent, "Theme: Emerald Green", "Apply", function() ApplyAccent(Color3.fromRGB(55, 215, 130)) end)
+CreateButton(setContent, "Theme: Ocean Blue", "Apply", function() ApplyAccent(Color3.fromRGB(70, 150, 255)) end)
+CreateButton(setContent, "Theme: Crimson Red", "Apply", function() ApplyAccent(Color3.fromRGB(240, 75, 85)) end)
+
+-- JSON Config Export & Import
+local configBox
+configBox = CreateInputRow(setContent, "JSON Config hier einfügen...", "Load", function(jsonTxt)
+	local ok, decoded = pcall(function() return HttpService:JSONDecode(jsonTxt) end)
+	if ok and type(decoded) == "table" then
+		if decoded.Sliders then
+			for k, v in pairs(decoded.Sliders) do
+				if AllSlidersMap[k] then AllSlidersMap[k].Set(v) end
+			end
+		end
+		if decoded.Toggles then
+			for k, v in pairs(decoded.Toggles) do
+				if AllTogglesMap[k] then AllTogglesMap[k].Set(v) end
+			end
+		end
+		Notify("Config System", "Profil erfolgreich geladen!", "Success")
+	else
+		Notify("Config System", "Ungültiger JSON-String!", "Alert")
+	end
+end)
+
+CreateButton(setContent, "Aktuelle Config exportieren", "Export", function()
+	local data = {Toggles = {}, Sliders = {}}
+	for k, obj in pairs(AllTogglesMap) do data.Toggles[k] = obj.Get() end
+	for k, obj in pairs(AllSlidersMap) do data.Sliders[k] = obj.Get() end
+	local ok, encoded = pcall(function() return HttpService:JSONEncode(data) end)
+	if ok then
+		configBox.Text = encoded
+		Notify("Config Export", "JSON im Textfeld rechts generiert (Strg+C zum Kopieren)!", "Success")
+	end
+end)
+
+-- ============================================================================
+-- 9. HAUPTSCHLEIFEN (TROLL-HUB, SANDEVISTAN, MAGNET, COMBAT & ESP)
+-- ============================================================================
+rebuildTargetSelector()
+TrackConn(Players.PlayerAdded:Connect(rebuildTargetSelector))
+TrackConn(Players.PlayerRemoving:Connect(rebuildTargetSelector))
+
+local function getClosestTargetInFOV()
+	local bestTarget = nil
+	local shortestDist = State.AimFOV
+	local viewportCenter = camera.ViewportSize / 2
+
+	for _, t in ipairs(GetCombatTargets()) do
+		if State.AimTeamCheck and t.Team ~= nil and t.Team == player.Team then
+			continue
+		end
+		local hum = t.Char:FindFirstChildOfClass("Humanoid")
+		local targetPart = t.Char:FindFirstChild(State.AimTargetPart) or t.Char:FindFirstChild("HumanoidRootPart")
+		if hum and hum.Health > 0 and targetPart then
+			local screenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
+			if onScreen then
+				local dist2D = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
+				if dist2D <= shortestDist then
+					if State.AimWallCheck then
+						local rayParams = RaycastParams.new()
+						rayParams.FilterDescendantsInstances = {CachedChar or player.Character, camera}
+						rayParams.FilterType = Enum.RaycastFilterType.Exclude
+						local rayResult = workspace:Raycast(camera.CFrame.Position, targetPart.Position - camera.CFrame.Position, rayParams)
+						if rayResult and not rayResult.Instance:IsDescendantOf(t.Char) then
+							continue
+						end
+					end
+					shortestDist = dist2D
+					bestTarget = {Part = targetPart, Hum = hum, Data = t}
+				end
+			end
+		end
+	end
+	return bestTarget
+end
+
+local function updateESPAndHitboxes()
+	local activeIds = {}
+	for _, t in ipairs(GetCombatTargets()) do
+		activeIds[t.Id] = true
+		local char = t.Char
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		local head = char:FindFirstChild("Head")
+
+		local pFolder = espFolder:FindFirstChild(t.Id)
+		if not pFolder then
+			pFolder = Instance.new("Folder", espFolder)
+			pFolder.Name = t.Id
+		end
+
+		if hum and hum.Health > 0 and hrp then
+			local espColor = t.Color
+
+			local hl = pFolder:FindFirstChild("ChamsHighlight")
+			if State.ESPChams and not State.Streamproof then
+				if not hl then
+					hl = Instance.new("Highlight", pFolder)
+					hl.Name = "ChamsHighlight"
+					hl.FillTransparency = 0.65
+					hl.OutlineTransparency = 0.1
+					hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+				end
+				hl.Adornee = char
+				hl.FillColor = espColor
+				hl.OutlineColor = Color3.new(1, 1, 1)
+				hl.Enabled = true
+			elseif hl then
+				hl.Enabled = false
+			end
+
+			local bb = pFolder:FindFirstChild("NametagBillboard")
+			if State.ESPNametags and not State.Streamproof and head then
+				if not bb then
+					bb = Instance.new("BillboardGui", pFolder)
+					bb.Name = "NametagBillboard"
+					bb.Size = UDim2.new(0, 160, 0, 36)
+					bb.StudsOffset = Vector3.new(0, 2.8, 0)
+					bb.AlwaysOnTop = true
+
+					local tagLbl = Instance.new("TextLabel", bb)
+					tagLbl.Name = "InfoLabel"
+					tagLbl.Size = UDim2.new(1, 0, 1, 0)
+					tagLbl.BackgroundTransparency = 1
+					tagLbl.Font = Enum.Font.GothamBold
+					tagLbl.TextSize = 11
+					tagLbl.TextStrokeTransparency = 0.35
+				end
+				bb.Adornee = head
+				bb.Enabled = true
+				local dist = CachedRoot and math.floor((hrp.Position - CachedRoot.Position).Magnitude) or 0
+				local infoLbl = bb:FindFirstChild("InfoLabel")
+				if infoLbl then
+					infoLbl.TextColor3 = espColor
+					infoLbl.Text = string.format("%s [%d HP]\n%d Studs", t.Name, math.floor(hum.Health), dist)
+				end
+			elseif bb then
+				bb.Enabled = false
+			end
+
+			if State.HitboxExpander then
+				hrp.Size = Vector3.new(State.HitboxSize, State.HitboxSize, State.HitboxSize)
+				hrp.Transparency = 0.65
+				hrp.Color = espColor
+				hrp.CanCollide = false
+			end
+		else
+			pFolder:ClearAllChildren()
+		end
+	end
+
+	for _, child in ipairs(espFolder:GetChildren()) do
+		if not activeIds[child.Name] then child:Destroy() end
+	end
+end
+
+-- Maus-Klick Tools (Click-TP, Knockback-Impulse Gun, Local-Delete, Ruler)
+local rulerPointA = nil
+TrackConn(mouse.Button1Down:Connect(function()
+	local target = mouse.Target
+	if State.ClickTP and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) and mouse.Hit and CachedRoot then
+		CachedRoot.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3.2, 0))
+		Notify("Click-TP", "An Zielposition teleportiert!", "Success")
+	elseif State.KnockbackGun and UserInputService:IsKeyDown(Enum.KeyCode.LeftAlt) and target then
+		if not target.Anchored then
+			local dir = (target.Position - camera.CFrame.Position).Unit
+			target:ApplyImpulse(dir * target.AssemblyMass * 140 + Vector3.new(0, target.AssemblyMass * 60, 0))
+			Notify("Impulse Gun", target.Name .. " weggeschleudert!", "Success")
+		else
+			Notify("Impulse Gun", target.Name .. " ist fest verankert (Anchored)!", "Warn")
+		end
+	elseif State.LocalDeleteMode and target and not target:IsDescendantOf(CachedChar or workspace) then
+		table.insert(deletedStack, {Part = target, Parent = target.Parent})
+		target.Parent = nil
+		Notify("Local-Delete", target.Name .. " ausgeblendet (Undo verfügbar)", "Warn")
+	elseif State.RulerMode and mouse.Hit then
+		if not rulerPointA then
+			rulerPointA = mouse.Hit.Position
+			Notify("Ruler", "Punkt A gesetzt – klicke nun Punkt B!", "Info")
+		else
+			local dist = (mouse.Hit.Position - rulerPointA).Magnitude
+			rulerResLbl.Text = string.format("Distanz: %.1f Studs (%.1fm)", dist, dist * 0.28)
+			Notify("Ruler Ergebnis", string.format("%.1f Studs (%.1f Meter)", dist, dist * 0.28), "Success")
+			rulerPointA = nil
+		end
+	end
+end))
+
+-- Sandevistan Ghost-Trail & Fake-Lag Loop
+task.spawn(function()
+	local lagToggle = false
+	while State.Running and gui and gui.Parent do
+		task.wait(0.12)
+		-- Sandevistan Nachbilder erzeugen
+		if State.GhostTrail and CachedChar and CachedRoot and CachedRoot.AssemblyLinearVelocity.Magnitude > 4 then
+			for _, p in ipairs(CachedChar:GetChildren()) do
+				if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
+					local clone = Instance.new("Part", ghostFolder)
+					clone.Size = p.Size
+					clone.CFrame = p.CFrame
+					clone.Anchored = true
+					clone.CanCollide = false
+					clone.Material = Enum.Material.Neon
+					clone.Color = Colors.Accent
+					clone.Transparency = 0.45
+					tween(clone, 0.45, {Transparency = 1})
+					task.delay(0.46, function() if clone then clone:Destroy() end end)
+				end
+			end
+		end
+
+		-- Fake-Lag Stutter
+		if State.FakeLag and CachedRoot and not State.Freecam then
+			lagToggle = not lagToggle
+			CachedRoot.Anchored = lagToggle
+		end
+	end
+end)
+
+-- Auto-Clicker Loop
+task.spawn(function()
+	while State.Running and gui and gui.Parent do
+		if State.AutoClicker then
+			VirtualUser:Button1Down(Vector2.new(0, 0), camera.CFrame)
+			task.wait(0.02)
+			VirtualUser:Button1Up(Vector2.new(0, 0), camera.CFrame)
+			task.wait(math.max(0.03, (1 / State.ClickCPS) - 0.02))
+		else
+			task.wait(0.2)
+		end
+	end
+end)
+
+-- ESP, Part-Magnet & ClickDetector-Aura Loop (0.15s)
+task.spawn(function()
+	local magnetAngle = 0
+	while State.Running and gui and gui.Parent do
+		task.wait(0.15)
+		updateESPAndHitboxes()
+
+		if State.PartMagnet and CachedRoot then
+			magnetAngle += 0.35
+			for _, obj in ipairs(workspace:GetDescendants()) do
+				if obj:IsA("BasePart") and not obj.Anchored and not obj:IsDescendantOf(CachedChar or player.Character) then
+					if (obj.Position - CachedRoot.Position).Magnitude < 45 then
+						local goalPos = CachedRoot.Position + Vector3.new(math.cos(magnetAngle) * 8, 3, math.sin(magnetAngle) * 8)
+						obj.AssemblyLinearVelocity = (goalPos - obj.Position) * 4
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- Haupt-Render-Loop
+local lastTriggerShot = 0
+local orbitAngle = 0
+
+TrackConn(RunService.RenderStepped:Connect(function(dt)
+	-- Crosshair Rotation
+	if State.CustomCrosshair and State.CrosshairSpin then
+		crosshairHolder.Rotation = (crosshairHolder.Rotation + 160 * dt) % 360
+	end
+
+	local closestTarget = getClosestTargetInFOV()
+
+	-- Target-Info-HUD
+	if State.TargetHUD and closestTarget and not State.Streamproof then
+		targetHud.Visible = true
+		local hum = closestTarget.Hum
+		local dist = CachedRoot and math.floor((closestTarget.Part.Position - CachedRoot.Position).Magnitude) or 0
+		thName.Text = "🎯 " .. closestTarget.Data.Name
+		thSub.Text = string.format("%d / %d HP • %d Studs", math.floor(hum.Health), math.floor(hum.MaxHealth), dist)
+		thBarFill.Size = UDim2.new(math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1), 0, 1, 0)
+	else
+		targetHud.Visible = false
+	end
+
+	-- Aim-Assist [RMB]
+	if State.AimAssist and closestTarget and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+		local goalCFrame = CFrame.lookAt(camera.CFrame.Position, closestTarget.Part.Position)
+		local alpha = math.clamp(State.AimSmoothness / 100, 0.05, 1)
+		camera.CFrame = camera.CFrame:Lerp(goalCFrame, alpha)
+	end
+
+	-- Triggerbot
+	if State.Triggerbot and mouse.Target and (os.clock() - lastTriggerShot > 0.12) then
+		for _, t in ipairs(GetCombatTargets()) do
+			if mouse.Target:IsDescendantOf(t.Char) then
+				lastTriggerShot = os.clock()
+				VirtualUser:Button1Down(Vector2.zero, camera.CFrame)
+				task.delay(0.02, function() VirtualUser:Button1Up(Vector2.zero, camera.CFrame) end)
+				break
+			end
+		end
+	end
+
+	-- 2D-Tracers & 2D-Radar
+	tracerContainer:ClearAllChildren()
+	radarDotsFolder:ClearAllChildren()
+	if (State.ESPTracers or State.ShowRadar) and not State.Streamproof then
+		local vp = camera.ViewportSize
+		local start2D = Vector2.new(vp.X / 2, vp.Y - 10)
+
+		for _, t in ipairs(GetCombatTargets()) do
+			local hrp = t.Char:FindFirstChild("HumanoidRootPart")
+			local hum = t.Char:FindFirstChildOfClass("Humanoid")
+			if hrp and hum and hum.Health > 0 then
+				if State.ESPTracers then
+					local screenPos, onScreen = camera:WorldToViewportPoint(hrp.Position)
+					if onScreen then
+						local end2D = Vector2.new(screenPos.X, screenPos.Y)
+						local diff = end2D - start2D
+						local line = Instance.new("Frame", tracerContainer)
+						line.AnchorPoint = Vector2.new(0.5, 0.5)
+						line.Position = UDim2.new(0, (start2D.X + end2D.X) / 2, 0, (start2D.Y + end2D.Y) / 2)
+						line.Size = UDim2.new(0, diff.Magnitude, 0, 1.5)
+						line.Rotation = math.deg(math.atan2(diff.Y, diff.X))
+						line.BackgroundColor3 = t.Color
+						line.BorderSizePixel = 0
+					end
+				end
+
+				if State.ShowRadar and CachedRoot then
+					local rel = camera.CFrame:PointToObjectSpace(hrp.Position)
+					local rx = math.clamp(rel.X / 120, -0.46, 0.46)
+					local rz = math.clamp(rel.Z / 120, -0.46, 0.46)
+					local dot = Instance.new("Frame", radarDotsFolder)
+					dot.Size = UDim2.new(0, 6, 0, 6)
+					dot.AnchorPoint = Vector2.new(0.5, 0.5)
+					dot.Position = UDim2.new(0.5 + rx, 0, 0.5 + rz, 0)
+					dot.BackgroundColor3 = t.Color
+					corner(dot, 3)
+				end
+			end
+		end
+	end
+
+	-- Mouse-Part-Inspector [Strg + Alt]
+	if State.PartInspector and UserInputService:IsKeyDown(Enum.KeyCode.LeftAlt) and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) and mouse.Target then
+		local t = mouse.Target
+		local mPos = UserInputService:GetMouseLocation()
+		inspectorCard.Visible = true
+		inspectorCard.Position = UDim2.new(0, mPos.X + 16, 0, mPos.Y + 16)
+		inspectorLbl.Text = string.format(
+			"Name: %s\nClass: %s | Mat: %s\nSize: %.1f, %.1f, %.1f\nCollide: %s | Transp: %.2f",
+			t.Name, t.ClassName, t.Material.Name,
+			t.Size.X, t.Size.Y, t.Size.Z,
+			tostring(t.CanCollide), t.Transparency
+		)
+	else
+		inspectorCard.Visible = false
+	end
+
+	-- True Freecam Steuerung
+	if State.Freecam then
+		local moveVec = Vector3.zero
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveVec += camera.CFrame.LookVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveVec -= camera.CFrame.LookVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveVec -= camera.CFrame.RightVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveVec += camera.CFrame.RightVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveVec += Vector3.new(0, 1, 0) end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveVec -= Vector3.new(0, 1, 0) end
+		freecamCF = CFrame.lookAt(freecamCF.Position + (moveVec * State.FreecamSpeed * dt), freecamCF.Position + (moveVec * State.FreecamSpeed * dt) + camera.CFrame.LookVector)
+		camera.CFrame = freecamCF
+		return
+	end
+
+	if not (CachedHum and CachedRoot) then return end
+
+	-- Anti-Void Sicherheitssystem
+	if CachedHum.FloorMaterial ~= Enum.Material.Air then
+		State.SafeGroundPos = CachedRoot.CFrame
+	elseif State.AntiVoid and CachedRoot.Position.Y < -55 and State.SafeGroundPos then
+		CachedRoot.AssemblyLinearVelocity = Vector3.zero
+		CachedRoot.CFrame = State.SafeGroundPos + Vector3.new(0, 4, 0)
+		Notify("Anti-Void", "Vor dem Abgrund gerettet!", "Warn")
+	end
+
+	-- Player & Troll Hub Bewegungen (Orbit, Backpack, Head-Sit, Spin-Fling)
+	local targetRoot = getTargetRoot()
+	if targetRoot then
+		if State.OrbitTarget then
+			orbitAngle += dt * State.OrbitSpeed
+			local offset = Vector3.new(math.cos(orbitAngle) * State.OrbitRadius, 1, math.sin(orbitAngle) * State.OrbitRadius)
+			CachedRoot.CFrame = CFrame.lookAt(targetRoot.Position + offset, targetRoot.Position)
+		elseif State.BackpackAttach then
+			CachedRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 1.65)
+		elseif State.HeadSit then
+			CachedHum.Sit = true
+			CachedRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 2.7, 0)
+		elseif State.FlingActive then
+			for i = 1, #CachedParts do
+				if CachedParts[i] then CachedParts[i].CanCollide = false end
+			end
+			CachedRoot.CFrame = targetRoot.CFrame
+			CachedRoot.AssemblyAngularVelocity = Vector3.new(0, 9500, 0)
+		end
+	end
+
+	-- Spinbot (Self Rotation)
+	if State.Spinbot and not State.FlingActive then
+		CachedRoot.CFrame = CachedRoot.CFrame * CFrame.Angles(0, math.rad(State.SpinSpeed), 0)
+	end
+
+	-- Swim in Air
+	if State.SwimInAir then
+		CachedHum:ChangeState(Enum.HumanoidStateType.Swimming)
+	end
+
+	-- Movement-Macro Aufzeichnung
+	if State.MacroRecording then
+		table.insert(macroFrames, CachedRoot.CFrame)
+		macroStatLbl.Text = "Macro Frames: " .. #macroFrames
+	end
+
+	-- Air-Walk Plattform
+	if State.AirWalk and airWalkPart then
+		airWalkPart.CFrame = CFrame.new(CachedRoot.Position.X, State.AirWalkY, CachedRoot.Position.Z)
+	end
+
+	CachedHum.WalkSpeed = State.WalkSpeed
+	CachedHum.UseJumpPower = true
+	CachedHum.JumpPower = State.JumpPower
+
+	-- Auto-Bhop
+	if State.AutoBhop and UserInputService:IsKeyDown(Enum.KeyCode.Space) and CachedHum.FloorMaterial ~= Enum.Material.Air then
+		CachedHum.Jump = true
+	end
+
+	-- Spider-Climb
+	if State.SpiderClimb and UserInputService:IsKeyDown(Enum.KeyCode.W) then
+		local params = RaycastParams.new()
+		params.FilterDescendantsInstances = {CachedChar}
+		local hit = workspace:Raycast(CachedRoot.Position, CachedRoot.CFrame.LookVector * 3, params)
+		if hit then
+			local v = CachedRoot.AssemblyLinearVelocity
+			CachedRoot.AssemblyLinearVelocity = Vector3.new(v.X, State.WalkSpeed * 1.1, v.Z)
+		end
+	end
+
+	-- Vehicle Nitro
+	if State.VehicleNitro and UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and CachedHum.SeatPart and CachedHum.SeatPart:IsA("VehicleSeat") then
+		CachedHum.SeatPart.AssemblyLinearVelocity = camera.CFrame.LookVector * State.VehNitroPower
+	end
+
+	-- Dynamic Speed-FOV
+	if State.DynamicFOV then
+		local spd = CachedRoot.AssemblyLinearVelocity.Magnitude
+		camera.FieldOfView = math.clamp(State.BaseFOV + (spd - 16) * 0.35, State.BaseFOV, 120)
+	end
+
+	-- Noclip
+	if State.Noclip then
+		for i = 1, #CachedParts do
+			local p = CachedParts[i]
+			if p and p.CanCollide then p.CanCollide = false end
+		end
+	end
+
+	-- Moderner 3D Fly Modus
+	if State.Fly then
+		CachedHum.PlatformStand = true
+		if not flyAtt or flyAtt.Parent ~= CachedRoot then
+			cleanupFlyConstraints()
+			flyAtt = Instance.new("Attachment", CachedRoot)
+			flyAtt.Name = "TestProFlyAtt"
+
+			flyLv = Instance.new("LinearVelocity", CachedRoot)
+			flyLv.Name = "TestProFlyLV"
+			flyLv.Attachment0 = flyAtt
+			flyLv.MaxForce = math.huge
+			flyLv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+			flyLv.RelativeTo = Enum.ActuatorRelativeTo.World
+
+			flyAo = Instance.new("AlignOrientation", CachedRoot)
+			flyAo.Name = "TestProFlyAO"
+			flyAo.Mode = Enum.OrientationAlignmentMode.OneAttachment
+			flyAo.Attachment0 = flyAtt
+			flyAo.MaxTorque = math.huge
+			flyAo.Responsiveness = 50
+		end
+
+		local md = Vector3.zero
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then md += camera.CFrame.LookVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then md -= camera.CFrame.LookVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then md -= camera.CFrame.RightVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then md += camera.CFrame.RightVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then md += Vector3.new(0, 1, 0) end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then md -= Vector3.new(0, 1, 0) end
+
+		flyLv.VectorVelocity = md.Magnitude > 0 and (md.Unit * State.FlySpeed) or Vector3.zero
+		flyAo.CFrame = camera.CFrame
+	else
+		if flyLv or flyAo or flyAtt then cleanupFlyConstraints() end
+	end
+end))
+
+-- Gedrosselter 0.5s Telemetry & Kompass Loop
+task.spawn(function()
+	local fCount, lTick = 0, os.clock()
+	TrackConn(RunService.RenderStepped:Connect(function() fCount += 1 end))
+	local dirs = {"N", "NO", "O", "SO", "S", "SW", "W", "NW"}
+
+	while State.Running and gui and gui.Parent do
+		task.wait(0.5)
+		local dt = os.clock() - lTick
+		local fps = math.floor(fCount / math.max(dt, 0.001))
+		local ping = 0
+		pcall(function() ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
+		wmDate.Text = os.date("%b %d %Y %H:%M")
+		wmStats.Text = string.format("%d FPS • %dms", fps, ping)
+		fCount = 0 lTick = os.clock()
+
+		if State.ShowCompass and CachedRoot then
+			local look = camera.CFrame.LookVector
+			local deg = math.deg(math.atan2(-look.X, -look.Z)) % 360
+			local dir = dirs[math.floor((deg + 22.5) / 45) % 8 + 1]
+			compassLbl.Text = string.format("%s (%.0f°) • %.0f, %.0f, %.0f", dir, deg, CachedRoot.Position.X, CachedRoot.Position.Y, CachedRoot.Position.Z)
+		end
+	end
+end)
+
+-- Vollständiger Cleanup beim Drücken des Panic-Keys (Entf)
+local function FullCleanup()
+	State.Running = false
+	State.Fly = false
+	State.ZeroG = false
+	cleanupFlyConstraints()
+	updateZeroG()
+	resetHitboxes()
+	applyBodyMaterial(false)
+
+	if airWalkPart then airWalkPart:Destroy() airWalkPart = nil end
+	if ghostFolder then ghostFolder:Destroy() end
+	for _, d in ipairs(spawnedDummies) do if d then d:Destroy() end end
+	for part, orig in pairs(invisWallsOriginal) do
+		if part and part.Parent then part.LocalTransparencyModifier = orig end
+	end
+	for part, orig in pairs(xrayOriginal) do
+		if part and part.Parent then part.LocalTransparencyModifier = orig end
+	end
+
+	Lighting.Brightness = OrigLighting.Brightness
+	Lighting.ClockTime = OrigLighting.ClockTime
+	Lighting.FogEnd = OrigLighting.FogEnd
+	Lighting.GlobalShadows = OrigLighting.GlobalShadows
+	Lighting.Ambient = OrigLighting.Ambient
+	Lighting.OutdoorAmbient = OrigLighting.OutdoorAmbient
+	workspace.Gravity = OrigLighting.Gravity
+	player.CameraMaxZoomDistance = OrigLighting.MaxZoom
+
+	for _, c in ipairs(Connections) do
+		if c.Connected then c:Disconnect() end
+	end
+	table.clear(Connections)
+
+	if CachedRoot then
+		CachedRoot.Anchored = false
+		CachedRoot.AssemblyAngularVelocity = Vector3.zero
+	end
+	if CachedHum then
+		CachedHum.WalkSpeed = 16
+		CachedHum.JumpPower = 50
+		CachedHum.PlatformStand = false
+		CachedHum.Sit = false
+		camera.CameraSubject = CachedHum
+	end
+	for _, p in ipairs(CachedParts) do
+		if p and p.Parent then p.CanCollide = true end
+	end
+	for _, item in ipairs(deletedStack) do
+		if item.Part then item.Part.Parent = item.Parent end
+	end
+
+	camera.CameraType = Enum.CameraType.Custom
+	camera.FieldOfView = 70
+	if menuBlur then menuBlur:Destroy() end
+	if dofEffect then dofEffect:Destroy() end
+	if ccShader then ccShader:Destroy() end
+	if gui then gui:Destroy() end
+end
+
+-- Hotkeys & Custom Keybind Handler
+TrackConn(UserInputService.InputBegan:Connect(function(inp, gp)
+	if gp then return end
+
+	if BindingToggleObj and inp.UserInputType == Enum.UserInputType.Keyboard then
+		if inp.KeyCode == Enum.KeyCode.Escape or inp.KeyCode == Enum.KeyCode.Backspace then
+			BindingToggleObj.Key = nil
+			BindingToggleObj.BindBtn.Text = "[...]"
+			BindingToggleObj.BindBtn.TextColor3 = Colors.TextMuted
+		else
+			BindingToggleObj.Key = inp.KeyCode
+			BindingToggleObj.BindBtn.Text = "[" .. inp.KeyCode.Name:sub(1, 3) .. "]"
+			BindingToggleObj.BindBtn.TextColor3 = Colors.Accent
+			Notify("Keybind", BindingToggleObj.Label .. " gebunden auf [" .. inp.KeyCode.Name .. "]", "Success")
+		end
+		BindingToggleObj = nil
+		refreshKeybindOverlay()
+		return
+	end
+
+	if inp.KeyCode == Brand.ToggleKey then
+		mainContainer.Visible = not mainContainer.Visible
+		menuBlur.Size = (mainContainer.Visible and not State.Streamproof) and State.BlurSize or 0
+	elseif inp.KeyCode == Brand.CommandKey and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+		cmdModal.Visible = not cmdModal.Visible
+		if cmdModal.Visible then cmdBox:CaptureFocus() end
+	elseif inp.KeyCode == Brand.StreamproofKey then
+		State.Streamproof = not State.Streamproof
+		masterRoot.Visible = not State.Streamproof
+		fovCircle.Visible = State.ShowFOVCircle and not State.Streamproof
+		radarFrame.Visible = State.ShowRadar and not State.Streamproof
+		keybindOverlay.Visible = State.ShowKeybindList and not State.Streamproof
+		crosshairHolder.Visible = State.CustomCrosshair and not State.Streamproof
+		menuBlur.Size = (mainContainer.Visible and not State.Streamproof) and State.BlurSize or 0
+	elseif inp.KeyCode == Brand.PanicKey then
+		FullCleanup()
+		return
+	end
+
+	if inp.UserInputType == Enum.UserInputType.Keyboard then
+		for _, tObj in ipairs(CustomKeybinds) do
+			if tObj.Key and tObj.Key == inp.KeyCode then
+				playUISound()
+				tObj.Set(not tObj.Get())
+			end
+		end
+	end
+end))
+
+local function makeDrag(handle, target)
+	local drag, dInp, dStart, sPos
+	handle.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			drag = true dStart = i.Position sPos = target.Position
+			i.Changed:Connect(function() if i.UserInputState == Enum.UserInputState.End then drag = false end end)
+		end
+	end)
+	handle.InputChanged:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then dInp = i end
+	end)
+	TrackConn(UserInputService.InputChanged:Connect(function(i)
+		if i == dInp and drag then
+			local d = i.Position - dStart
+			target.Position = UDim2.new(sPos.X.Scale, sPos.X.Offset + d.X, sPos.Y.Scale, sPos.Y.Offset + d.Y)
+		end
+	end))
+end
+
+makeDrag(brandLogo, mainWin)
+makeDrag(setTop, settingsWin)
+makeDrag(watermark, watermark)
+makeDrag(compassBox, compassBox)
+makeDrag(radarFrame, radarFrame)
+makeDrag(targetHud, targetHud)
+makeDrag(keybindOverlay, keybindOverlay)
+
+Notify("Test GamePRO v14", "Player & Troll Hub geladen! Wähle links oben ein Ziel aus.", "Success")
